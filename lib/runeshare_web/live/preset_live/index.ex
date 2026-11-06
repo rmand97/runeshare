@@ -176,7 +176,8 @@ defmodule RuneshareWeb.PresetLive.Index do
         </span>
       </div>
 
-      <div class="overflow-hidden rounded-box border border-base-content/10 bg-base-100">
+      <%!-- Wide content scrolls inside the table, never the page. --%>
+      <div class="overflow-x-auto rounded-box border border-base-content/10 bg-base-100">
         <.async_result :let={_meta} assign={@page}>
           <:loading><.skeleton_rows rows={6} /></:loading>
           <:failed>
@@ -236,9 +237,12 @@ defmodule RuneshareWeb.PresetLive.Index do
                       </div>
                       <.tag_badges tags={preset.tags} path={&list_path(@filters, tag: &1, offset: 0)} />
                       <div class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/65 sm:hidden">
-                        <span>
-                          <.author_link preset={preset} avatar={false} />
-                          · {time_ago(preset.updated_at)}
+                        <%!-- Long display names (up to 40 chars) truncate instead of wrapping. --%>
+                        <span class="flex max-w-full min-w-0 items-center gap-1">
+                          <span class="min-w-0 truncate">
+                            <.author_link preset={preset} avatar={false} />
+                          </span>
+                          <span class="shrink-0">· {time_ago(preset.updated_at)}</span>
                         </span>
                         <.counts preset={preset} />
                       </div>

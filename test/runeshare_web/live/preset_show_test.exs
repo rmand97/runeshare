@@ -126,6 +126,29 @@ defmodule RuneshareWeb.PresetShowTest do
   end
 
   describe "comments" do
+    test "a long thread shows the latest 20; earlier ones load on request, oldest on top", %{
+      conn: conn
+    } do
+      preset = share_preset!(register_user!())
+      # Three commenters: the comment rate limit is 10 per user per 5 minutes.
+      commenters = for _ <- 1..3, do: register_user!()
+
+      for n <- 1..25 do
+        Sharing.post_comment!(preset.id, "Comment #{n}", actor: Enum.at(commenters, rem(n, 3)))
+      end
+
+      conn
+      |> visit(~p"/presets/#{preset}")
+      |> assert_has("#comments li", text: "Comment 25", timeout: 2_000)
+      |> assert_has("#comments li[data-phx-stream]", count: 20)
+      |> refute_has("#comments li", text: "Comment 5", exact: true)
+      |> assert_has("#more-comments", text: "Show earlier comments (5 more)")
+      |> click_button("#more-comments", "Show earlier comments")
+      |> assert_has("#comments li[data-phx-stream]", count: 25, timeout: 2_000)
+      |> assert_has("#comments li[data-phx-stream]:first-child", text: "Comment 1")
+      |> refute_has("#more-comments")
+    end
+
     test "a signed-in user posts a comment", %{conn: conn} do
       preset = share_preset!(register_user!())
 

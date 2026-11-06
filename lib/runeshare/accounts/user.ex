@@ -125,6 +125,29 @@ defmodule Runeshare.Accounts.User do
     timestamps()
   end
 
+  relationships do
+    has_many :presets, Runeshare.Sharing.Preset do
+      destination_attribute :author_id
+      public? true
+    end
+  end
+
+  # Profile totals. Preset read policies apply, so hidden presets only count
+  # for their author and moderators.
+  aggregates do
+    count :share_count, :presets do
+      public? true
+    end
+
+    count :total_likes, [:presets, :likes] do
+      public? true
+    end
+
+    count :total_copies, [:presets, :copies] do
+      public? true
+    end
+  end
+
   identities do
     identity :unique_email, [:email]
   end

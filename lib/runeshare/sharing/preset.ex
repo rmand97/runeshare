@@ -83,6 +83,8 @@ defmodule Runeshare.Sharing.Preset do
                 sort: [inserted_at: :desc],
                 load: [:like_count, :comment_count, :copy_count, :cover_image_url]
               )
+
+      pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
     read :liked do
@@ -93,6 +95,8 @@ defmodule Runeshare.Sharing.Preset do
                 sort: [inserted_at: :desc],
                 load: [:author, :like_count, :comment_count, :copy_count, :cover_image_url]
               )
+
+      pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
     read :by_author do
@@ -104,6 +108,8 @@ defmodule Runeshare.Sharing.Preset do
                 sort: [inserted_at: :desc],
                 load: [:like_count, :comment_count, :copy_count, :cover_image_url]
               )
+
+      pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
     read :duplicates do

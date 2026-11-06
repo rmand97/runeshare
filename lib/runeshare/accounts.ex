@@ -15,6 +15,11 @@ defmodule Runeshare.Accounts do
     resource Runeshare.Accounts.User do
       define :update_profile, action: :update_profile
       define :get_user, action: :read, get_by: [:id]
+
+      define :get_author,
+        action: :read,
+        get_by: [:id],
+        default_options: [load: [:share_count, :total_likes, :total_copies]]
     end
 
     resource Runeshare.Accounts.UserIdentity

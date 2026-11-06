@@ -6,18 +6,19 @@ defmodule RuneshareWeb.ModerationLive do
 
   use RuneshareWeb, :live_view
 
+  import RuneshareWeb.ListComponents
   import RuneshareWeb.PresetComponents
 
-  alias Phoenix.LiveView.AsyncResult
   alias Runeshare.Sharing
+  alias RuneshareWeb.Paging
 
   @impl Phoenix.LiveView
   def mount(_params, _session, %{assigns: %{current_user: %{role: :admin} = admin}} = socket) do
     socket =
       socket
-      |> assign(page_title: "Moderation", queue: AsyncResult.loading(), reports: %{})
-      |> stream(:reports, [])
-      |> start_async(:reports, fn -> Sharing.list_open_reports!(actor: admin) end)
+      |> assign(page_title: "Moderation", report_index: %{})
+      |> Paging.init(:reports)
+      |> Paging.load(:reports, fetch(admin))
 
     {:ok, socket}
   end
@@ -31,32 +32,32 @@ defmodule RuneshareWeb.ModerationLive do
     {:ok, socket}
   end
 
-  # start_async rather than stream_async: the actions need the loaded report structs.
+  # The buttons act on loaded report structs, kept in `report_index` by id.
   @impl Phoenix.LiveView
-  def handle_async(:reports, {:ok, reports}, socket) do
+  def handle_async(:reports, {:ok, page} = result, socket) do
     socket =
       socket
-      |> stream(:reports, reports, reset: true)
+      |> Paging.handle(:reports, result)
       |> assign(
-        queue: AsyncResult.ok(socket.assigns.queue, true),
-        reports: Map.new(reports, &{&1.id, &1})
+        report_index: Map.merge(socket.assigns.report_index, Map.new(page.results, &{&1.id, &1}))
       )
 
     {:noreply, socket}
   end
 
-  def handle_async(:reports, {:exit, reason}, socket) do
-    socket = assign(socket, queue: AsyncResult.failed(socket.assigns.queue, {:exit, reason}))
-    {:noreply, socket}
-  end
+  def handle_async(:reports, result, socket),
+    do: {:noreply, Paging.handle(socket, :reports, result)}
 
   @impl Phoenix.LiveView
+  def handle_event("more_reports", _params, socket),
+    do: {:noreply, Paging.load(socket, :reports, fetch(socket.assigns.current_user))}
+
   def handle_event(action, %{"id" => id}, socket)
       when action in ["resolve", "hide", "unhide", "delete"] do
     admin = socket.assigns.current_user
 
     socket =
-      case Map.fetch(socket.assigns.reports, id) do
+      case Map.fetch(socket.assigns.report_index, id) do
         {:ok, report} -> moderate(socket, action, report, admin)
         :error -> socket
       end
@@ -101,8 +102,9 @@ defmodule RuneshareWeb.ModerationLive do
 
   defp drop_reports(socket, reports) do
     socket = Enum.reduce(reports, socket, &stream_delete(&2, :reports, &1))
+    socket = Paging.shift(socket, :reports, -Enum.count(reports))
     ids = Enum.map(reports, & &1.id)
-    assign(socket, reports: Map.drop(socket.assigns.reports, ids))
+    assign(socket, report_index: Map.drop(socket.assigns.report_index, ids))
   end
 
   defp mark_hidden(socket, preset_id, hidden) do
@@ -112,11 +114,16 @@ defmodule RuneshareWeb.ModerationLive do
       |> Enum.map(&%{&1 | preset: %{&1.preset | hidden: hidden}})
 
     socket = Enum.reduce(updated, socket, &stream_insert(&2, :reports, &1))
-    assign(socket, reports: Map.merge(socket.assigns.reports, Map.new(updated, &{&1.id, &1})))
+
+    assign(socket,
+      report_index: Map.merge(socket.assigns.report_index, Map.new(updated, &{&1.id, &1}))
+    )
   end
 
+  defp fetch(admin), do: &Sharing.list_open_reports!(actor: admin, page: &1)
+
   defp reports_for(socket, preset_id) do
-    socket.assigns.reports
+    socket.assigns.report_index
     |> Map.values()
     |> Enum.filter(&(&1.preset_id == preset_id))
   end
@@ -133,7 +140,7 @@ defmodule RuneshareWeb.ModerationLive do
       </div>
 
       <.panel id="reports" title="Open reports" icon="hero-flag">
-        <.async_result assign={@queue}>
+        <.async_result assign={@reports}>
           <:loading><.skeleton_rows rows={4} /></:loading>
           <:failed>
             <p class="px-3 py-6 text-center text-sm text-error">Couldn't load the queue.</p>
@@ -237,6 +244,7 @@ defmodule RuneshareWeb.ModerationLive do
             </li>
           </ul>
         </.async_result>
+        <.load_more id="more-reports" event="more_reports" paging={@paging.reports} />
       </.panel>
     </Layouts.app>
     """

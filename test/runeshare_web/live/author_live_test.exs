@@ -15,7 +15,7 @@ defmodule RuneshareWeb.AuthorLiveTest do
     |> assert_has("#author-presets a", text: "Vorago rotation timer", timeout: 2_000)
     |> assert_has("#author-presets a", text: "Raksha tiles")
     |> assert_has("#author-presets", text: "vorago")
-    |> assert_has("#author-stats", text: "Shares")
+    |> assert_has("#author-stats div", text: "Shares 2")
     |> refute_has("#author-presets a", text: "Someone else's alarm")
     |> refute_has("a", text: "Edit your account")
   end

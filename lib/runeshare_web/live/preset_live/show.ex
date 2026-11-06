@@ -9,6 +9,7 @@ defmodule RuneshareWeb.PresetLive.Show do
 
   use RuneshareWeb, :live_view
 
+  import RuneshareWeb.ListComponents
   import RuneshareWeb.PresetComponents
   import RuneshareWeb.PresetDetailComponents
 
@@ -16,6 +17,7 @@ defmodule RuneshareWeb.PresetLive.Show do
   alias Runeshare.Sharing
   alias Runeshare.Sharing.ImportString
   alias RuneshareWeb.Endpoint
+  alias RuneshareWeb.Paging
 
   @impl Phoenix.LiveView
   def mount(%{"id" => id}, _session, socket) do
@@ -56,6 +58,15 @@ defmodule RuneshareWeb.PresetLive.Show do
   end
 
   @impl Phoenix.LiveView
+  def handle_async(:comments, result, socket),
+    do: {:noreply, Paging.handle(socket, :comments, result, at: 0)}
+
+  @impl Phoenix.LiveView
+  def handle_event("more_comments", _params, socket) do
+    preset_id = socket.assigns.preset.id
+    {:noreply, Paging.load(socket, :comments, &Sharing.list_comments!(preset_id, page: &1))}
+  end
+
   def handle_event("copied", %{"id" => id}, socket) do
     before = socket.assigns.copied
     socket = track_copy(socket, id)
@@ -197,18 +208,29 @@ defmodule RuneshareWeb.PresetLive.Show do
     {:noreply, socket |> refresh_preset() |> load_versions()}
   end
 
+  # Every viewer (the poster too) counts new and removed comments here, once,
+  # so the next "Show earlier comments" page starts at the right offset.
   def handle_info(%Broadcast{topic: "comments:" <> _id, event: "post", payload: payload}, socket) do
     socket =
       case Sharing.get_comment(payload.data.id) do
-        {:ok, comment} -> stream_insert(socket, :comments, comment)
-        {:error, _gone} -> socket
+        {:ok, comment} ->
+          socket |> stream_insert(:comments, comment) |> Paging.shift(:comments, 1)
+
+        {:error, _gone} ->
+          socket
       end
 
     {:noreply, refresh_preset(socket)}
   end
 
   def handle_info(%Broadcast{topic: "comments:" <> _id, payload: payload}, socket) do
-    {:noreply, socket |> stream_delete(:comments, payload.data) |> refresh_preset()}
+    socket =
+      socket
+      |> stream_delete(:comments, payload.data)
+      |> Paging.shift(:comments, -1)
+      |> refresh_preset()
+
+    {:noreply, socket}
   end
 
   def handle_info(%Broadcast{topic: "likes:" <> _id}, socket) do
@@ -377,6 +399,13 @@ defmodule RuneshareWeb.PresetLive.Show do
                 <p class="p-3 text-sm text-error">Couldn't load comments.</p>
               </:failed>
             </.async_result>
+            <.load_more
+              id="more-comments"
+              event="more_comments"
+              paging={@paging.comments}
+              label="Show earlier comments"
+              position="top"
+            />
             <ul id="comments" phx-update="stream" class="divide-y divide-base-content/5">
               <li
                 :if={@comments.ok?}
@@ -488,9 +517,14 @@ defmodule RuneshareWeb.PresetLive.Show do
     end)
   end
 
+  # Newest first from the database, shown oldest first: each page is prepended,
+  # so "Show earlier comments" adds older ones on top.
   defp load_comments(socket) do
     preset_id = socket.assigns.preset.id
-    stream_async(socket, :comments, fn -> {:ok, Sharing.list_comments!(preset_id)} end)
+
+    socket
+    |> Paging.init(:comments)
+    |> Paging.load(:comments, &Sharing.list_comments!(preset_id, page: &1))
   end
 
   defp assign_comment_form(%{assigns: %{current_user: nil}} = socket),

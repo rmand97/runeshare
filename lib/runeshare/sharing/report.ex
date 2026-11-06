@@ -31,6 +31,7 @@ defmodule Runeshare.Sharing.Report do
       description "Unresolved reports, oldest first, with preset and reporter."
       filter expr(status == :open)
       prepare build(sort: [inserted_at: :asc], load: [:reporter, preset: [:author]])
+      pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
     create :file do

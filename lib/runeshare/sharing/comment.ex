@@ -28,10 +28,11 @@ defmodule Runeshare.Sharing.Comment do
     defaults [:read]
 
     read :for_preset do
-      description "A preset's comments, oldest first, with their authors."
+      description "A preset's comments, newest first, with their authors. Page it for long threads."
       argument :preset_id, :uuid, allow_nil?: false
       filter expr(preset_id == ^arg(:preset_id))
-      prepare build(sort: [inserted_at: :asc], load: [:author])
+      prepare build(sort: [inserted_at: :desc, id: :desc], load: [:author])
+      pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
     create :post do

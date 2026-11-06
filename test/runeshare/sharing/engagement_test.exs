@@ -41,7 +41,7 @@ defmodule Runeshare.Sharing.EngagementTest do
   end
 
   describe "comments" do
-    test "signed-in users comment; comments list oldest first with authors" do
+    test "signed-in users comment; comments list newest first with authors" do
       preset = share_preset!(register_user!())
       alice = register_user!(name: "Alice")
       bob = register_user!(name: "Bob")
@@ -49,7 +49,7 @@ defmodule Runeshare.Sharing.EngagementTest do
       Sharing.post_comment!(preset.id, "First!", actor: alice)
       Sharing.post_comment!(preset.id, "Works great", actor: bob)
 
-      assert [%{body: "First!", author: %{name: "Alice"}}, %{body: "Works great"}] =
+      assert [%{body: "Works great"}, %{body: "First!", author: %{name: "Alice"}}] =
                Sharing.list_comments!(preset.id)
 
       assert %{comment_count: 2} = Sharing.get_preset!(preset.id)

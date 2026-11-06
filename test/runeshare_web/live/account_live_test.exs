@@ -50,6 +50,24 @@ defmodule RuneshareWeb.AccountLiveTest do
       |> refute_has("#liked-presets a", text: "Not liked")
     end
 
+    test "shows 20 likes at first and the rest on request", %{conn: conn} do
+      fan = register_user!()
+      # Several authors: sharing is rate limited to 10 an hour per user.
+      for author <- for(_ <- 1..3, do: register_user!()), n <- 1..9 do
+        preset = share_preset!(author, %{title: "Liked #{author.id} #{n}"})
+        Sharing.like_preset!(preset.id, actor: fan)
+      end
+
+      conn
+      |> log_in_user(fan)
+      |> visit(~p"/account")
+      |> assert_has("#liked-presets-list li[data-phx-stream]", count: 20, timeout: 2_000)
+      |> assert_has("#more-liked", text: "(7 more)")
+      |> click_button("#more-liked", "Show more")
+      |> assert_has("#liked-presets-list li[data-phx-stream]", count: 27, timeout: 2_000)
+      |> refute_has("#more-liked")
+    end
+
     test "says when nothing is liked", %{conn: conn} do
       conn
       |> log_in_user(register_user!())

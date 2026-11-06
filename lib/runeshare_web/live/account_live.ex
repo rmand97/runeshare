@@ -6,10 +6,12 @@ defmodule RuneshareWeb.AccountLive do
 
   use RuneshareWeb, :live_view
 
+  import RuneshareWeb.ListComponents
   import RuneshareWeb.PresetComponents
 
   alias Runeshare.Accounts
   alias Runeshare.Sharing
+  alias RuneshareWeb.Paging
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
@@ -19,13 +21,25 @@ defmodule RuneshareWeb.AccountLive do
       socket
       |> assign(page_title: "My account")
       |> assign_profile_form(user)
-      |> stream_async(:presets, fn -> {:ok, Sharing.list_my_presets!(actor: user)} end)
-      |> stream_async(:liked, fn -> {:ok, Sharing.list_liked_presets!(actor: user)} end)
+      |> Paging.init(:presets)
+      |> Paging.init(:liked)
+      |> Paging.load(:presets, fetch(:presets, user))
+      |> Paging.load(:liked, fetch(:liked, user))
 
     {:ok, socket}
   end
 
   @impl Phoenix.LiveView
+  def handle_async(list, result, socket) when list in [:presets, :liked],
+    do: {:noreply, Paging.handle(socket, list, result)}
+
+  @impl Phoenix.LiveView
+  def handle_event("more_presets", _params, socket),
+    do: {:noreply, Paging.load(socket, :presets, fetch(:presets, socket.assigns.current_user))}
+
+  def handle_event("more_liked", _params, socket),
+    do: {:noreply, Paging.load(socket, :liked, fetch(:liked, socket.assigns.current_user))}
+
   def handle_event("validate", %{"form" => params}, socket) do
     socket = assign(socket, form: AshPhoenix.Form.validate(socket.assigns.form, params))
     {:noreply, socket}
@@ -171,6 +185,7 @@ defmodule RuneshareWeb.AccountLive do
               </li>
             </ul>
           </.async_result>
+          <.load_more id="more-presets" event="more_presets" paging={@paging.presets} />
         </.panel>
 
         <.panel id="liked-presets" title="Liked" icon="hero-heart" class="lg:col-start-2">
@@ -211,11 +226,15 @@ defmodule RuneshareWeb.AccountLive do
               </li>
             </ul>
           </.async_result>
+          <.load_more id="more-liked" event="more_liked" paging={@paging.liked} />
         </.panel>
       </div>
     </Layouts.app>
     """
   end
+
+  defp fetch(:presets, user), do: &Sharing.list_my_presets!(actor: user, page: &1)
+  defp fetch(:liked, user), do: &Sharing.list_liked_presets!(actor: user, page: &1)
 
   defp assign_profile_form(socket, user) do
     form =

@@ -115,7 +115,7 @@ defmodule Runeshare.Sharing.DiscoveryTest do
       Sharing.edit_preset!(preset, %{title: "Second take"}, actor: author)
       Sharing.post_comment!(preset.id, "on v2", actor: fan)
 
-      assert [%{preset_version: 1}, %{preset_version: 2}] = Sharing.list_comments!(preset.id)
+      assert [%{preset_version: 2}, %{preset_version: 1}] = Sharing.list_comments!(preset.id)
     end
   end
 

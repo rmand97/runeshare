@@ -20,11 +20,13 @@ defmodule RuneshareWeb.Browser.TagPickerTest do
     |> fill_in("Title", with: "Tag picker test")
     |> fill_in("Import string", with: watchdog_export())
     |> type("#form_tags_text_input", "zammy")
+    # Suggestions round-trip through the server (debounced); slow under a busy suite.
+    |> assert_has("#form_tags_live_select_component li", text: "zamorak", timeout: 5_000)
     |> click("#form_tags_live_select_component li", "zamorak")
     |> assert_has("#form_tags_live_select_component", text: "zamorak")
     |> fill_in("Tags (optional)", with: "Phase four")
     # The picker ignores Enter until its suggestions for the typed text arrive.
-    |> assert_has("#form_tags_live_select_component li", text: "phase-four")
+    |> assert_has("#form_tags_live_select_component li", text: "phase-four", timeout: 5_000)
     |> press("#form_tags_text_input", "Enter")
     # Picking closes the dropdown; the tag then shows as it will be saved.
     |> refute_has("#form_tags_live_select_component li")

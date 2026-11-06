@@ -6,42 +6,37 @@ defmodule RuneshareWeb.AuthorLive do
 
   use RuneshareWeb, :live_view
 
+  import RuneshareWeb.ListComponents
   import RuneshareWeb.PresetComponents
 
-  alias Phoenix.LiveView.AsyncResult
   alias Runeshare.Accounts
   alias Runeshare.Sharing
+  alias RuneshareWeb.Paging
 
   @impl Phoenix.LiveView
   def mount(%{"id" => id}, _session, socket) do
     viewer = socket.assigns.current_user
-    author = Accounts.get_user!(id, actor: viewer)
+    # Loads the share/like/copy totals for the stats strip.
+    author = Accounts.get_author!(id, actor: viewer)
     author_id = author.id
 
     socket =
       socket
       |> assign(page_title: author.name, author: author)
-      |> assign(presets: AsyncResult.loading(), stats: nil)
-      |> stream(:presets, [])
-      |> start_async(:presets, fn -> Sharing.list_presets_by_author!(author_id, actor: viewer) end)
+      |> Paging.init(:presets)
+      |> Paging.load(:presets, fetch(author_id, viewer))
 
     {:ok, socket}
   end
 
-  # start_async rather than stream_async: the stats strip is computed from the same list.
   @impl Phoenix.LiveView
-  def handle_async(:presets, {:ok, presets}, socket) do
-    socket =
-      socket
-      |> stream(:presets, presets, reset: true)
-      |> assign(presets: AsyncResult.ok(socket.assigns.presets, true), stats: stats(presets))
+  def handle_async(:presets, result, socket),
+    do: {:noreply, Paging.handle(socket, :presets, result)}
 
-    {:noreply, socket}
-  end
-
-  def handle_async(:presets, {:exit, reason}, socket) do
-    socket = assign(socket, presets: AsyncResult.failed(socket.assigns.presets, {:exit, reason}))
-    {:noreply, socket}
+  @impl Phoenix.LiveView
+  def handle_event("more_presets", _params, socket) do
+    %{author: author, current_user: viewer} = socket.assigns
+    {:noreply, Paging.load(socket, :presets, fetch(author.id, viewer))}
   end
 
   @impl Phoenix.LiveView
@@ -85,9 +80,9 @@ defmodule RuneshareWeb.AuthorLive do
         id="author-stats"
         class="grid grid-cols-3 divide-x divide-base-content/10 rounded-box border border-base-content/10 bg-base-100"
       >
-        <.stat label="Shares" value={@stats && @stats.shares} />
-        <.stat label="Likes" value={@stats && @stats.likes} />
-        <.stat label="Copies" value={@stats && @stats.copies} />
+        <.stat label="Shares" value={@author.share_count} />
+        <.stat label="Likes" value={@author.total_likes} />
+        <.stat label="Copies" value={@author.total_copies} />
       </dl>
 
       <.panel id="author-presets" title="Shared presets" icon="hero-share">
@@ -96,76 +91,80 @@ defmodule RuneshareWeb.AuthorLive do
           <:failed>
             <p class="px-3 py-6 text-center text-sm text-error">Couldn't load these presets.</p>
           </:failed>
-          <table class="table table-sm">
-            <thead class="bg-base-200 font-display text-[11px] tracking-wider text-base-content/70 uppercase">
-              <tr>
-                <th>Title</th>
-                <th class="hidden md:table-cell">Tags</th>
-                <th class="hidden sm:table-cell">Updated</th>
-                <th class="hidden sm:table-cell">Activity</th>
-                <th class="w-0 text-right">Copy</th>
-              </tr>
-            </thead>
-            <tbody id="author-presets-list" phx-update="stream">
-              <tr id="author-presets-empty" class="hidden only:table-row">
-                <td colspan="5" class="py-6 text-center text-sm text-base-content/70">
-                  Nothing shared yet.
-                </td>
-              </tr>
-              <tr
-                :for={{dom_id, preset} <- @streams.presets}
-                id={dom_id}
-                class="sm:hover:bg-base-200/60"
-              >
-                <td class="w-full max-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="badge shrink-0 rounded-sm font-display badge-xs tracking-wider uppercase badge-primary">
-                      {kind_short(preset.kind)}
+          <%!-- Wide content scrolls inside the table, never the page. --%>
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead class="bg-base-200 font-display text-[11px] tracking-wider text-base-content/70 uppercase">
+                <tr>
+                  <th>Title</th>
+                  <th class="hidden md:table-cell">Tags</th>
+                  <th class="hidden sm:table-cell">Updated</th>
+                  <th class="hidden sm:table-cell">Activity</th>
+                  <th class="w-0 text-right">Copy</th>
+                </tr>
+              </thead>
+              <tbody id="author-presets-list" phx-update="stream">
+                <tr id="author-presets-empty" class="hidden only:table-row">
+                  <td colspan="5" class="py-6 text-center text-sm text-base-content/70">
+                    Nothing shared yet.
+                  </td>
+                </tr>
+                <tr
+                  :for={{dom_id, preset} <- @streams.presets}
+                  id={dom_id}
+                  class="sm:hover:bg-base-200/60"
+                >
+                  <td class="w-full max-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="badge shrink-0 rounded-sm font-display badge-xs tracking-wider uppercase badge-primary">
+                        {kind_short(preset.kind)}
+                      </span>
+                      <.link
+                        navigate={~p"/presets/#{preset}"}
+                        class="truncate text-sm font-medium sm:hover:text-primary"
+                      >
+                        {preset.title}
+                      </.link>
+                      <span class="shrink-0 font-mono text-[11px] text-base-content/60">
+                        v{preset.version}
+                      </span>
+                      <span
+                        :if={preset.hidden}
+                        class="badge shrink-0 rounded-sm font-display badge-xs tracking-wider uppercase badge-warning"
+                      >
+                        Hidden
+                      </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/65 sm:hidden">
+                      <.timestamp at={preset.updated_at} prefix="Updated " />
+                      <.counts preset={preset} />
+                    </div>
+                  </td>
+                  <td class="hidden md:table-cell">
+                    <span class="flex flex-wrap gap-1">
+                      <span
+                        :for={tag <- preset.tags}
+                        class="badge rounded-sm badge-ghost font-mono badge-xs"
+                      >
+                        {tag}
+                      </span>
                     </span>
-                    <.link
-                      navigate={~p"/presets/#{preset}"}
-                      class="truncate text-sm font-medium sm:hover:text-primary"
-                    >
-                      {preset.title}
-                    </.link>
-                    <span class="shrink-0 font-mono text-[11px] text-base-content/60">
-                      v{preset.version}
-                    </span>
-                    <span
-                      :if={preset.hidden}
-                      class="badge shrink-0 rounded-sm font-display badge-xs tracking-wider uppercase badge-warning"
-                    >
-                      Hidden
-                    </span>
-                  </div>
-                  <div class="flex flex-wrap items-center gap-x-2 text-xs text-base-content/65 sm:hidden">
-                    <.timestamp at={preset.updated_at} prefix="Updated " />
+                  </td>
+                  <td class="hidden whitespace-nowrap text-base-content/70 sm:table-cell">
+                    <.timestamp at={preset.updated_at} />
+                  </td>
+                  <td class="hidden whitespace-nowrap sm:table-cell">
                     <.counts preset={preset} />
-                  </div>
-                </td>
-                <td class="hidden md:table-cell">
-                  <span class="flex flex-wrap gap-1">
-                    <span
-                      :for={tag <- preset.tags}
-                      class="badge rounded-sm badge-ghost font-mono badge-xs"
-                    >
-                      {tag}
-                    </span>
-                  </span>
-                </td>
-                <td class="hidden whitespace-nowrap text-base-content/70 sm:table-cell">
-                  <.timestamp at={preset.updated_at} />
-                </td>
-                <td class="hidden whitespace-nowrap sm:table-cell">
-                  <.counts preset={preset} />
-                </td>
-                <td class="text-right">
-                  <.copy_button id={"copy-#{preset.id}"} content={preset.content} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                  <td class="text-right">
+                    <.copy_button id={"copy-#{preset.id}"} content={preset.content} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </.async_result>
+        <.load_more id="more-presets" event="more_presets" paging={@paging.presets} />
       </.panel>
     </Layouts.app>
     """
@@ -188,11 +187,6 @@ defmodule RuneshareWeb.AuthorLive do
     """
   end
 
-  defp stats(presets) do
-    %{
-      shares: Enum.count(presets),
-      likes: Enum.sum_by(presets, & &1.like_count),
-      copies: Enum.sum_by(presets, & &1.copy_count)
-    }
-  end
+  defp fetch(author_id, viewer),
+    do: &Sharing.list_presets_by_author!(author_id, actor: viewer, page: &1)
 end
