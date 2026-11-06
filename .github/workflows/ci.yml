@@ -5,6 +5,11 @@ on:
     branches: [main, master]
   pull_request:
 
+# A newer push to the same branch or PR cancels the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   MIX_ENV: test
 
@@ -32,20 +37,25 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Elixir / OTP
+        id: beam
         uses: erlef/setup-beam@v1
         with:
           otp-version: "29"
           elixir-version: "1.20"
 
+      # Restore and save are separate steps so the cache is saved even when a
+      # later step fails (actions/cache only saves on success). The key includes
+      # the OTP/Elixir versions so a version bump never restores a stale _build.
       - name: Restore deps and build cache
-        uses: actions/cache@v4
+        id: mix-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             deps
             _build
-          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          key: ${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-ex${{ steps.beam.outputs.elixir-version }}-mix-${{ hashFiles('mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-
+            ${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-ex${{ steps.beam.outputs.elixir-version }}-mix-
 
       - name: Install deps
         run: mix deps.get
@@ -69,8 +79,41 @@ jobs:
       - name: Credo
         run: mix credo --strict
 
+      - name: Restore Playwright browser cache
+        id: playwright-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('assets/package-lock.json') }}
+
+      # The browser comes from the cache when it can; its system libraries are
+      # installed every time (fresh runner).
       - name: Install Playwright
-        run: npm --prefix assets ci && npm --prefix assets exec playwright install --with-deps chromium
+        run: |
+          npm --prefix assets ci
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            npm --prefix assets exec playwright install-deps chromium
+          else
+            npm --prefix assets exec playwright install --with-deps chromium
+          fi
+
+      - name: Save Playwright browser cache
+        if: always() && steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
 
       - name: Tests
         run: mix test
+
+      # Last, so it also holds the dev build from the skills check. Skipped when
+      # the exact key was restored (keys are immutable); app code recompiles fast.
+      - name: Save deps and build cache
+        if: always() && steps.mix-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ steps.mix-cache.outputs.cache-primary-key }}
