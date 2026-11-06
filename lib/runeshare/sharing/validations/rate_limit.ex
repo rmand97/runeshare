@@ -9,6 +9,7 @@ defmodule Runeshare.Sharing.Validations.RateLimit do
   use Ash.Resource.Validation
 
   require Ash.Query
+  require Logger
 
   @impl Ash.Resource.Validation
   def init(opts) do
@@ -30,6 +31,11 @@ defmodule Runeshare.Sharing.Validations.RateLimit do
     if count < opts[:max] do
       :ok
     else
+      Logger.warning(
+        "rate limit hit: #{inspect(changeset.resource)} #{opts[:max]} per #{opts[:per_seconds]}s actor=user:#{actor_id}",
+        actor_id: actor_id
+      )
+
       {:error, message: "you're doing that too often — please wait a while and try again"}
     end
   end

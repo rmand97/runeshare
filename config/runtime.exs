@@ -154,6 +154,38 @@ if config_env() == :dev do
     ]
 end
 
+# ## Production logging
+#
+# Fly collects stdout (`fly logs`). One JSON object per line, so a log shipper
+# or `fly logs | jq` can filter on fields; LOG_FORMAT=text gives the plain
+# console format instead. LOG_LEVEL (debug/info/warning/error) defaults to info.
+# Metadata is an allow-list: nothing else attached to a log call is printed.
+if config_env() == :prod do
+  log_levels = %{"debug" => :debug, "info" => :info, "warning" => :warning, "error" => :error}
+  config :logger, level: Map.get(log_levels, System.get_env("LOG_LEVEL", "info"), :info)
+
+  if System.get_env("LOG_FORMAT", "json") == "json" do
+    config :logger, :default_handler,
+      formatter:
+        LoggerJSON.Formatters.Basic.new(
+          metadata: [
+            :request_id,
+            :user_id,
+            :live_view,
+            :event,
+            :ash_action,
+            :outcome,
+            :duration_ms,
+            :actor_id,
+            :record_id,
+            :error_class,
+            :slow_query_ms,
+            :source
+          ]
+        )
+  end
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||

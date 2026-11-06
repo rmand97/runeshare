@@ -5,8 +5,12 @@ defmodule Runeshare.Application do
 
   use Application
 
+  alias Runeshare.Repo.SlowQueryLog
+
   @impl true
   def start(_type, _args) do
+    SlowQueryLog.attach()
+
     children = [
       RuneshareWeb.Telemetry,
       Runeshare.Repo,

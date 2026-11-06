@@ -44,6 +44,24 @@ fly logs -a runeshare-db                   # database logs
 fly secrets list                           # names only
 ```
 
+### Logs
+
+Production logs are one JSON object per line (`LoggerJSON.Formatters.Basic`), level
+`info`. Every Ash write logs one line: action, outcome, duration, actor id and record
+id (`Runeshare.ActionLog`); forbidden attempts are warnings, crashes errors. Reads,
+SQL and LiveView events stay at `debug`; queries over 200 ms log a `slow query` warning.
+Emails, tokens and action inputs are never logged — users appear by id.
+
+```sh
+fly logs                                                     # live tail
+fly logs --no-tail | jq -r 'select(.severity=="warning" or .severity=="error") | .message'
+fly logs --no-tail | jq -r 'select(.metadata.actor_id=="<user id>") | .message'
+fly secrets set LOG_LEVEL=debug     # temporarily: every read and Ash action (restarts)
+fly secrets set LOG_FORMAT=text     # plain lines instead of JSON
+```
+
+`fly logs` only shows recent output; ship logs elsewhere (e.g. fly-log-shipper) to keep them.
+
 The app machine stops after a few idle minutes and starts on the next request
 (a second or two). The database machine always runs.
 

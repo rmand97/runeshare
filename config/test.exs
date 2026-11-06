@@ -41,8 +41,13 @@ config :runeshare, RuneshareWeb.Endpoint,
   # Real server so PhoenixTest.Playwright browser tests can reach the app.
   server: true
 
-# Print only warnings and errors during test
-config :logger, level: :warning
+# Print only warnings and errors during test. Info still reaches capture_log,
+# which Runeshare.ActionLogTest relies on; the console handler drops it.
+config :logger, level: :info
+config :logger, :default_handler, level: :warning
+
+# A loaded CI box is slow; only Runeshare.Repo.SlowQueryLogTest wants these.
+config :runeshare, :slow_query_ms, 5_000
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

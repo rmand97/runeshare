@@ -10,7 +10,8 @@ defmodule Runeshare.Sharing.Preset do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
     notifiers: [Ash.Notifier.PubSub],
-    extensions: [AshStorage]
+    extensions: [AshStorage],
+    simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   @kinds [:watchdog_alarm, :tile_marker]
 

@@ -7,5 +7,6 @@ Application.put_env(:phoenix_test, :base_url, RuneshareWeb.Endpoint.url())
 
 AshStorage.Service.Test.start()
 
-ExUnit.start()
+# Log output is shown only for failing tests (forbidden attempts log warnings).
+ExUnit.start(capture_log: true)
 Ecto.Adapters.SQL.Sandbox.mode(Runeshare.Repo, :manual)
