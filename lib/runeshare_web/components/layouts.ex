@@ -59,10 +59,10 @@ defmodule RuneshareWeb.Layouts do
             :for={kind <- Runeshare.Sharing.Preset.kinds()}
             navigate={PresetComponents.kind_path(kind)}
             class={[
-              "flex items-center border-b-2 px-3",
+              "flex items-center border-b-2 px-3 focus-visible:-outline-offset-2",
               if(@active == kind,
                 do: "border-primary text-primary",
-                else: "border-transparent sm:hover:text-primary"
+                else: "border-transparent sm:hover:border-primary/40 sm:hover:text-primary"
               )
             ]}
           >

@@ -60,7 +60,7 @@ defmodule RuneshareWeb.PresetDetailComponents do
           <.version_row :for={version <- shown} version={version} preset={@preset} viewing={@viewing} />
         </ul>
         <details :if={older != []} id="older-versions" class="border-t border-base-content/5 text-sm">
-          <summary class="cursor-pointer px-3 py-2 text-xs text-base-content/70 sm:hover:bg-base-200/60">
+          <summary class="cursor-pointer px-3 py-2 text-xs text-base-content/70 focus-visible:text-primary sm:hover:bg-base-200/60 sm:hover:text-primary">
             Show {length(older)} older {if length(older) == 1, do: "version", else: "versions"}
           </summary>
           <ul class="divide-y divide-base-content/5">
@@ -153,7 +153,7 @@ defmodule RuneshareWeb.PresetDetailComponents do
             phx-click="delete_comment"
             phx-value-id={@comment.id}
             data-confirm="Delete this comment?"
-            class="btn ml-auto btn-square btn-ghost text-base-content/65 btn-xs sm:hover:text-error"
+            class="btn ml-auto btn-square btn-ghost text-base-content/65 btn-xs focus-visible:text-error sm:hover:text-error"
           >
             <.icon name="hero-trash" class="size-3.5" />
             <span class="sr-only">Delete comment</span>

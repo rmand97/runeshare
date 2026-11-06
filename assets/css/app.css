@@ -149,3 +149,110 @@
   ) {
   --input-color: var(--color-primary);
 }
+
+/* Hover and keyboard focus feedback for buttons, interactive badges and list rows.
+   Hover only on devices that can hover (no sticky hover on touch); keyboard focus
+   always gets a gold outline, and on hover-capable devices the hover look as well.
+   Inside `utilities` so these beat DaisyUI's component styles but still lose to
+   utility classes in templates (`sm:hover:text-error` and the like). */
+@layer utilities {
+  @layer interactive {
+    :where(a, summary),
+    .btn,
+    a.badge {
+      transition-property: color, background-color, border-color, box-shadow, transform;
+      transition-duration: 140ms;
+      transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    /* Keyboard focus: gold ring, the same accent as focused form fields. */
+    :where(a, summary, button, [tabindex]):focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    .btn:focus-visible {
+      outline-color: var(--btn-color, var(--color-primary));
+    }
+
+    @media (hover: hover) {
+      /* Solid buttons shift toward the text colour: lighter in dark mode, darker in light. */
+      .btn:is(:hover, :focus-visible):not(.btn-disabled, :disabled) {
+        --btn-bg: color-mix(
+          in oklab,
+          var(--btn-color, var(--color-base-200)),
+          var(--color-base-content) 14%
+        );
+      }
+
+      /* Outline buttons get a tint and an accent border rather than a full fill;
+         uncoloured ones take the gold accent. */
+      .btn-outline:is(:hover, :focus-visible):not(.btn-disabled, :disabled) {
+        --btn-bg: color-mix(in oklab, var(--btn-color, var(--color-primary)) 14%, transparent);
+        --btn-border: var(--btn-color, var(--color-primary));
+        color: var(--btn-color, var(--color-primary));
+      }
+
+      .btn-ghost:is(:hover, :focus-visible):not(.btn-disabled, :disabled) {
+        --btn-bg: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+        --btn-border: transparent;
+        color: var(--btn-color, var(--color-primary));
+      }
+
+      /* Badges that link somewhere (tags, "on v2") light up gold. Plain <span>
+         badges are status only and stay put. */
+      a.badge:is(:hover, :focus-visible) {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary);
+        color: var(--color-primary-content);
+      }
+
+      /* List rows using the row-hover convention also get the gold left rule. */
+      :is(li, a, summary).sm\:hover\:bg-base-200\/60:is(:hover, :has(:focus-visible), :focus-visible) {
+        box-shadow: inset 2px 0 0 var(--color-primary);
+      }
+
+      tr.sm\:hover\:bg-base-200\/60:is(:hover, :has(:focus-visible)) > :first-child {
+        box-shadow: inset 2px 0 0 var(--color-primary);
+      }
+    }
+
+    a.badge:focus-visible {
+      outline-offset: 1px;
+    }
+
+    /* Full-width rows sit flush in panels that clip overflow: ring inside. */
+    .sm\:hover\:bg-base-200\/60:focus-visible {
+      outline-offset: -2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      :where(a, summary),
+      .btn,
+      a.badge {
+        transition: none;
+      }
+
+      .btn:active {
+        translate: none;
+      }
+    }
+  }
+}
+
+/* LiveToast's close button is styled black-on-white, invisible in dark mode. Unlayered
+   because its utility classes would otherwise win. */
+[phx-hook="LiveToast"] > button[aria-label="close"] {
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--color-base-content);
+    background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+}
