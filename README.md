@@ -33,5 +33,5 @@ Agent rules live in `CLAUDE.md` and `.claude/skills/`.
 
 ## Production
 
-Runs on Fly.io (app + self-run Postgres) with cover images in Tigris: <https://runeshare.fly.dev>.
+Runs on Fly.io (app + self-run Postgres) with cover images in Tigris: <https://runeshare.dk>.
 `fly deploy` ships a new version. Setup, costs, backups and secrets: [DEPLOY.md](DEPLOY.md).

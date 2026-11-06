@@ -9,7 +9,21 @@ Production runs on [Fly.io](https://fly.io) in `ams` (Amsterdam):
 | `pg_data` volume | 1 GB, daily snapshots kept 14 days | ~$0.15 + snapshots |
 | `runeshare-covers` | Public Tigris bucket for cover images | free tier (5 GB, 10k writes, 100k reads) |
 
-Site: <https://runeshare.fly.dev>. Config: `fly.toml` (app) and `fly-db/fly.toml` (database).
+Site: <https://runeshare.dk>. Config: `fly.toml` (app) and `fly-db/fly.toml` (database).
+
+## Domain
+
+`runeshare.dk` is registered with Dandomain, which also hosts its DNS (nameservers
+`ns.dandomain.dk`, `ns2.dandomain.dk`):
+
+| Name | Type | Value |
+|---|---|---|
+| `runeshare.dk`, `www.runeshare.dk` | A | `66.241.125.243` (Fly shared IPv4) |
+| `runeshare.dk`, `www.runeshare.dk` | AAAA | `2a09:8280:1::1ed:2558:0` (the app's IPv6) |
+
+Fly issues the TLS certificates (`fly certs list`). `PHX_HOST` in `fly.toml` is the
+canonical host: `RuneshareWeb.Plugs.CanonicalHost` 301-redirects every other name
+(`www.`, `runeshare.fly.dev`) to it.
 
 ## Deploy a new version
 
@@ -70,7 +84,7 @@ and images are served straight from `https://runeshare-covers.t3.tigrisfiles.io`
 |---|---|
 | `SECRET_KEY_BASE`, `TOKEN_SIGNING_SECRET` | Random; changing them signs everyone out |
 | `DATABASE_URL` | `ecto://runeshare:<password>@runeshare-db.internal:5432/runeshare` |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The Google OAuth client. Its authorized redirect URIs must include `https://runeshare.fly.dev/auth/user/google/callback` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The Google OAuth client. Its authorized redirect URIs must include `https://runeshare.dk/auth/user/google/callback` |
 | `ADMIN_EMAILS` | Comma-separated; these accounts become moderators on sign-in |
 | Tigris (5) | Set by `fly storage create` |
 

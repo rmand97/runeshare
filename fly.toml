@@ -14,7 +14,8 @@ swap_size_mb = 512
   release_command = "/app/bin/migrate"
 
 [env]
-  PHX_HOST = "runeshare.fly.dev"
+  # Canonical host: www.runeshare.dk and runeshare.fly.dev redirect here.
+  PHX_HOST = "runeshare.dk"
   PORT = "8080"
   # Postgres runs in the "runeshare-db" app, reached over Fly's private IPv6 network.
   ECTO_IPV6 = "true"
