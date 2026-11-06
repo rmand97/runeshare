@@ -1,4 +1,8 @@
-{:ok, _} = PhoenixTest.Playwright.Supervisor.start_link()
+# Browser tests need Node + Playwright; CI skips them with `--exclude playwright`.
+unless :playwright in Keyword.get(ExUnit.configuration(), :exclude, []) do
+  {:ok, _} = PhoenixTest.Playwright.Supervisor.start_link()
+end
+
 Application.put_env(:phoenix_test, :base_url, RuneshareWeb.Endpoint.url())
 
 AshStorage.Service.Test.start()

@@ -94,7 +94,7 @@ defmodule RuneshareWeb.PresetLive.Show do
         socket =
           socket
           |> assign(report_form: nil)
-          |> put_flash(:info, "Thanks — a moderator will take a look.")
+          |> toast(:info, "Thanks — a moderator will take a look.")
 
         {:noreply, socket}
 

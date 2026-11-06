@@ -116,7 +116,6 @@ expands \$RUNESHARE_PORT in the launching shell, so a Claude started without it 
 tidewave and ash_ai at slot 0's app instead of this one.
 
   app            http://localhost:$port
-  live debugger  http://localhost:$((4020 + slot))
   databases      runeshare_dev_$slot, runeshare_test_$slot
 EOF
 }

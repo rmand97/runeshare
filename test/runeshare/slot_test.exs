@@ -7,7 +7,6 @@ defmodule Runeshare.SlotTest do
     test "ports and database names are unchanged" do
       assert Slot.suffix(0) == ""
       assert Slot.dev_port(0) == 4000
-      assert Slot.debugger_port(0) == 4020
       assert Slot.test_port(0) == 4040
       assert Slot.database(0, "runeshare_dev") == "runeshare_dev"
       assert Slot.database(0, "runeshare_test") == "runeshare_test"
@@ -21,7 +20,6 @@ defmodule Runeshare.SlotTest do
   describe "a worktree slot isolates every port and database" do
     test "slot 3 gets its own block" do
       assert Slot.dev_port(3) == 4003
-      assert Slot.debugger_port(3) == 4023
       assert Slot.test_port(3) == 4043
       assert Slot.database(3, "runeshare_dev") == "runeshare_dev_3"
       assert Slot.database(3, "runeshare_test") == "runeshare_test_3"
@@ -30,7 +28,7 @@ defmodule Runeshare.SlotTest do
     test "no two slots in 0..9 share a port" do
       ports =
         Enum.flat_map(0..9, fn slot ->
-          [Slot.dev_port(slot), Slot.debugger_port(slot), Slot.test_port(slot)]
+          [Slot.dev_port(slot), Slot.test_port(slot)]
         end)
 
       assert Enum.count(Enum.uniq(ports)) == Enum.count(ports)

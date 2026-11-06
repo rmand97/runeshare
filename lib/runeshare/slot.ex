@@ -14,7 +14,6 @@ defmodule Runeshare.Slot do
 
   @max_slot 9
   @dev_base 4000
-  @debugger_base 4020
   @test_base 4040
 
   @doc "Slot for the current checkout, from `RUNESHARE_SLOT` (default 0)."
@@ -37,10 +36,6 @@ defmodule Runeshare.Slot do
   @doc "Port the dev server binds to."
   @spec dev_port(non_neg_integer()) :: pos_integer()
   def dev_port(slot), do: @dev_base + slot
-
-  @doc "Port LiveDebugger binds to."
-  @spec debugger_port(non_neg_integer()) :: pos_integer()
-  def debugger_port(slot), do: @debugger_base + slot
 
   @doc "Port the test endpoint binds to."
   @spec test_port(non_neg_integer()) :: pos_integer()

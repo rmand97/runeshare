@@ -6,14 +6,19 @@ defmodule RuneshareWeb.Browser.CopyPresetTest do
   use RuneshareWeb, :verified_routes
 
   import Runeshare.Test.Builders
+  import RuneshareWeb.BrowserHelpers
 
   alias Runeshare.Sharing
+
+  # Real browser; skipped in CI (`mix test --exclude playwright`).
+  @moduletag :playwright
 
   test "copying the import string puts it on the clipboard and counts the copy", %{conn: conn} do
     preset = share_preset!(register_user!(), %{content: watchdog_export("Telos enrage")})
 
     conn
     |> visit(~p"/presets/#{preset}")
+    |> wait_for_liveview()
     |> assert_has("#copy-count", text: "Copied 0×")
     |> click_button("#copy-preset", "Copy string")
     |> assert_has("#copy-preset", text: "Copied!")

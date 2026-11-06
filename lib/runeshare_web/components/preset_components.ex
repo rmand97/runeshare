@@ -164,12 +164,31 @@ defmodule RuneshareWeb.PresetComponents do
       <span :if={@label} data-label>{@label}</span>
     </button>
     <script :type={Phoenix.LiveView.ColocatedHook} name=".CopyToClipboard">
+      // The Clipboard API refuses unfocused or insecure pages; fall back to the
+      // older select-and-copy so the button still works there.
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text)
+        } catch (_refused) {
+          const area = document.createElement("textarea")
+          area.value = text
+          area.setAttribute("readonly", "")
+          area.style.position = "fixed"
+          area.style.opacity = "0"
+          document.body.appendChild(area)
+          area.select()
+          const copied = document.execCommand("copy")
+          area.remove()
+          if (!copied) throw new Error("copy failed")
+        }
+      }
+
       export default {
         mounted() {
           this.el.addEventListener("click", async () => {
             const {content, target} = this.el.dataset
             const text = content ?? document.getElementById(target).textContent
-            await navigator.clipboard.writeText(text)
+            await copyText(text)
             if (this.el.dataset.track) this.pushEvent("copied", {id: this.el.dataset.track})
             this.el.dataset.copied = ""
             const label = this.el.querySelector("[data-label]")

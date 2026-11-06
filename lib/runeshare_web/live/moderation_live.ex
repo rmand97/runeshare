@@ -69,7 +69,7 @@ defmodule RuneshareWeb.ModerationLive do
 
     socket
     |> drop_reports([report])
-    |> put_flash(:info, "Report dismissed")
+    |> toast(:info, "Report dismissed")
   end
 
   defp moderate(socket, "hide", report, admin) do
@@ -79,7 +79,7 @@ defmodule RuneshareWeb.ModerationLive do
     socket
     |> drop_reports([report])
     |> mark_hidden(report.preset_id, true)
-    |> put_flash(:info, "Preset hidden and report resolved")
+    |> toast(:info, "Preset hidden and report resolved")
   end
 
   defp moderate(socket, "unhide", report, admin) do
@@ -87,7 +87,7 @@ defmodule RuneshareWeb.ModerationLive do
 
     socket
     |> mark_hidden(report.preset_id, false)
-    |> put_flash(:info, "Preset visible again")
+    |> toast(:info, "Preset visible again")
   end
 
   # Deleting the preset cascades to all of its reports.
@@ -96,7 +96,7 @@ defmodule RuneshareWeb.ModerationLive do
 
     socket
     |> drop_reports(reports_for(socket, report.preset_id))
-    |> put_flash(:info, "Preset deleted")
+    |> toast(:info, "Preset deleted")
   end
 
   defp drop_reports(socket, reports) do

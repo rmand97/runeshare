@@ -79,33 +79,9 @@ jobs:
       - name: Credo
         run: mix credo --strict
 
-      - name: Restore Playwright browser cache
-        id: playwright-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('assets/package-lock.json') }}
-
-      # The browser comes from the cache when it can; its system libraries are
-      # installed every time (fresh runner).
-      - name: Install Playwright
-        run: |
-          npm --prefix assets ci
-          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
-            npm --prefix assets exec playwright install-deps chromium
-          else
-            npm --prefix assets exec playwright install --with-deps chromium
-          fi
-
-      - name: Save Playwright browser cache
-        if: always() && steps.playwright-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.playwright-cache.outputs.cache-primary-key }}
-
+      # Browser (Playwright) tests are local-only; run them with `mix test`.
       - name: Tests
-        run: mix test
+        run: mix test --exclude playwright
 
       # Last, so it also holds the dev build from the skills check. Skipped when
       # the exact key was restored (keys are immutable); app code recompiles fast.

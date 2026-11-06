@@ -38,7 +38,7 @@ defmodule RuneshareWeb.AccountLive do
           socket
           |> assign(current_user: user)
           |> assign_profile_form(user)
-          |> put_flash(:info, "Display name saved")
+          |> toast(:info, "Display name saved")
 
         {:noreply, socket}
 

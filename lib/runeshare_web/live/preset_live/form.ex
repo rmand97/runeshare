@@ -27,7 +27,9 @@ defmodule RuneshareWeb.PresetLive.Form do
       allow_upload(socket, :cover_image,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
-        max_file_size: CoverImage.max_bytes()
+        max_file_size: CoverImage.max_bytes(),
+        # Upload as soon as it's picked (with progress), so Save doesn't wait on it.
+        auto_upload: true
       )
 
     {:ok, socket}
@@ -71,12 +73,18 @@ defmodule RuneshareWeb.PresetLive.Form do
     form = AshPhoenix.Form.validate(socket.assigns.form, params)
 
     # Only take the picked image once everything else is valid, so a typo
-    # elsewhere doesn't make the user pick it again.
-    if form.source.valid? do
-      {:noreply, submit(socket, params)}
-    else
-      socket = assign(socket, form: form, touched: MapSet.new(@touchable))
-      {:noreply, socket}
+    # elsewhere doesn't make the user pick it again. An image still uploading
+    # can't be taken yet (the button is disabled meanwhile; this covers a race).
+    cond do
+      uploading?(socket.assigns.uploads.cover_image) ->
+        {:noreply, toast(socket, :error, "Wait until the image has finished uploading.")}
+
+      form.source.valid? ->
+        {:noreply, submit(socket, params)}
+
+      true ->
+        socket = assign(socket, form: form, touched: MapSet.new(@touchable))
+        {:noreply, socket}
     end
   end
 
@@ -237,8 +245,13 @@ defmodule RuneshareWeb.PresetLive.Form do
             <% end %>
           </p>
           <.link navigate={kind_path(@kind)} class="btn btn-ghost btn-sm">Cancel</.link>
-          <button type="submit" class="btn btn-primary btn-sm" phx-disable-with="Saving…">
-            Save preset
+          <button
+            type="submit"
+            class="btn btn-primary btn-sm"
+            phx-disable-with="Saving…"
+            disabled={uploading?(@uploads.cover_image)}
+          >
+            {if uploading?(@uploads.cover_image), do: "Uploading image…", else: "Save preset"}
           </button>
         </div>
       </.form>
@@ -371,6 +384,8 @@ defmodule RuneshareWeb.PresetLive.Form do
   defp upload_error_message(:not_accepted), do: "must be a JPEG, PNG or WebP image"
   defp upload_error_message(:too_many_files), do: "pick just one image"
   defp upload_error_message(_other), do: "couldn't be uploaded — please try again"
+
+  defp uploading?(upload), do: Enum.any?(upload.entries, &(not &1.done?))
 
   defp submit(socket, params) do
     {params, copies} = put_cover_image(socket, params)

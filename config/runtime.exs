@@ -78,10 +78,6 @@ if config_env() in [:dev, :test] do
     config :runeshare, RuneshareWeb.Endpoint,
       http: [port: port],
       url: [host: "localhost", port: port]
-
-    # Derived from the port actually chosen, not from the slot: on the probe path
-    # the two diverge, and a LiveDebugger port clash takes the whole server down.
-    config :live_debugger, port: port + 20
   end
 end
 

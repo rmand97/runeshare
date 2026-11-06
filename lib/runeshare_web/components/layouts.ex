@@ -1,6 +1,6 @@
 defmodule RuneshareWeb.Layouts do
   @moduledoc """
-  Root and app layouts, flash group and theme toggle.
+  Root and app layouts and theme toggle. Flashes and toasts render through LiveToast.
   """
   use RuneshareWeb, :html
 
@@ -13,7 +13,7 @@ defmodule RuneshareWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
-  Page shell: top navigation, main content, footer and flash messages.
+  Page shell: top navigation, main content, footer and toasts (flashes included).
 
       <Layouts.app flash={@flash} current_user={@current_user} active={:watchdog_alarm}>
         <h1>Content</h1>
@@ -23,6 +23,10 @@ defmodule RuneshareWeb.Layouts do
   attr :current_user, :any, default: nil, doc: "the signed-in user, if any"
   attr :active, :atom, default: nil, doc: "preset kind whose nav tab is highlighted"
   attr :width, :string, default: "max-w-6xl", doc: "max-width class of the main column"
+
+  attr :connected, :boolean,
+    default: true,
+    doc: "whether this renders inside a LiveView (every page using this layout does)"
 
   slot :inner_block, required: true
 
@@ -118,56 +122,15 @@ defmodule RuneshareWeb.Layouts do
       RuneShare · community-made, not affiliated with Jagex.
     </footer>
 
-    <.flash_group flash={@flash} />
-    """
-  end
-
-  @doc """
-  Shows the flash group with standard titles and content.
-
-  ## Examples
-
-      <.flash_group flash={@flash} />
-  """
-  attr :flash, :map, required: true, doc: "the map of flash messages"
-  attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
-
-  def flash_group(assigns) do
-    ~H"""
-    <div id={@id} aria-live="polite">
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:error} flash={@flash} />
-
-      <.flash
-        id="client-error"
-        kind={:error}
-        title={gettext("We can't find the internet")}
-        phx-disconnected={
-          show(".phx-client-error #client-error")
-          |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
-        }
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-
-      <.flash
-        id="server-error"
-        kind={:error}
-        title={gettext("Something went wrong!")}
-        phx-disconnected={
-          show(".phx-server-error #server-error")
-          |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
-        }
-        phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        {gettext("Attempting to reconnect")}
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-    </div>
+    <LiveToast.toast_group
+      flash={@flash}
+      connected={@connected}
+      toasts_sync={[]}
+      corner={:top_right}
+      toast_class_fn={&RuneshareWeb.Toasts.toast_class/1}
+      connection_notifications={false}
+      flash_duration={RuneshareWeb.Toasts.duration()}
+    />
     """
   end
 

@@ -83,6 +83,9 @@ config :phoenix_live_view,
   root_tag_attribute: "phx-r"
 
 # Configure esbuild (the version is required)
+# LiveToast's built-in connection notices use the app's translations.
+config :live_toast, gettext_backend: RuneshareWeb.Gettext
+
 config :esbuild,
   version: "0.28.2",
   runeshare: [

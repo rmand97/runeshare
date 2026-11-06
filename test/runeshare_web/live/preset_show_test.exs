@@ -263,7 +263,10 @@ defmodule RuneshareWeb.PresetShowTest do
       |> select("Reason", option: "Spam")
       |> fill_in("Note (optional)", with: "Links to a gold site")
       |> click_button("Send report")
-      |> assert_has("#flash-info", text: "Thanks — a moderator will take a look.")
+      |> assert_has("#toast-group [role=alert]",
+        text: "Thanks — a moderator will take a look.",
+        timeout: 1_000
+      )
       |> refute_has("#report-form")
     end
 

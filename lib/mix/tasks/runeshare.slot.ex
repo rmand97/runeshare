@@ -30,13 +30,11 @@ defmodule Mix.Tasks.Runeshare.Slot do
     slot = Slot.current()
     endpoint = Application.get_env(:runeshare, RuneshareWeb.Endpoint, [])
     dev_port = get_in(endpoint, [:http, :port]) || Slot.dev_port(slot)
-    debugger_port = Application.get_env(:live_debugger, :port, Slot.debugger_port(slot))
     dev_database = Application.get_env(:runeshare, Runeshare.Repo, [])[:database]
 
     Mix.shell().info("""
     slot            #{slot}#{if slot == 0, do: "  (default — RUNESHARE_SLOT unset)", else: ""}
     dev server      http://localhost:#{dev_port}
-    live debugger   http://localhost:#{debugger_port}
     tidewave mcp    http://localhost:#{dev_port}/tidewave/mcp
     ash_ai mcp      http://localhost:#{dev_port}/ash_ai/mcp
     test endpoint   http://localhost:#{Slot.test_port(slot)}

@@ -64,3 +64,9 @@ For flows that need real JS (colocated hooks such as copy-to-clipboard), use
 (`log_in_user(conn, user)`). Debug with `@tag trace: :open` or `screenshot/2`.
 Needs `npm --prefix assets install && npm --prefix assets exec playwright install chromium`
 (part of `mix setup`). Keep these few — they are slow.
+
+- Tag every browser test module `@moduletag :playwright` (not `:browser` — that name
+  is a PhoenixTest.Playwright option). CI runs `mix test --exclude playwright`; run them locally.
+- Call `wait_for_liveview/1` (BrowserHelpers) right after `visit/2`. Typing or clicking
+  before the LiveView connects is lost, and hooks aren't mounted yet — the cause of
+  flaky "value disappeared" / "nothing happened on click" failures.

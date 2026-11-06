@@ -67,7 +67,7 @@ defmodule RuneshareWeb.AccountLiveTest do
       |> click_button("Save name")
       |> assert_has("#profile-name", text: "Zezima")
       |> assert_has("header", text: "Zezima")
-      |> assert_has("#flash-info", text: "Display name saved")
+      |> assert_has("#toast-group [role=alert]", text: "Display name saved", timeout: 1_000)
     end
 
     test "rejects a too-short name", %{conn: conn} do

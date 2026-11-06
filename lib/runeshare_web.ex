@@ -86,6 +86,7 @@ defmodule RuneshareWeb do
       import Phoenix.HTML
       # Core UI components
       import RuneshareWeb.CoreComponents
+      import RuneshareWeb.Toasts, only: [toast: 3]
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

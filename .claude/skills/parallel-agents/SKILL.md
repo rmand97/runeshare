@@ -19,11 +19,11 @@ this repo at once from sibling worktrees, and slot 0's app is somebody else's ap
 A slot is `RUNESHARE_SLOT`, an integer 0..9, read from the checkout's `.env`. Everything
 derives from it — `Runeshare.Slot` holds the arithmetic, `config/runtime.exs` applies it.
 
-| Slot | Dev server | LiveDebugger | Test endpoint | Dev DB | Test DB |
-|---|---|---|---|---|---|
-| 0 (main checkout) | 4000 | 4020 | 4040 | `runeshare_dev` | `runeshare_test` |
-| 1 | 4001 | 4021 | 4041 | `runeshare_dev_1` | `runeshare_test_1` |
-| N | 4000+N | 4020+N | 4040+N | `runeshare_dev_N` | `runeshare_test_N` |
+| Slot | Dev server | Test endpoint | Dev DB | Test DB |
+|---|---|---|---|---|
+| 0 (main checkout) | 4000 | 4040 | `runeshare_dev` | `runeshare_test` |
+| 1 | 4001 | 4041 | `runeshare_dev_1` | `runeshare_test_1` |
+| N | 4000+N | 4040+N | `runeshare_dev_N` | `runeshare_test_N` |
 
 `PORT` still wins over the slot if it is set. With neither set, `mix phx.server`
 probes 4000..4099 for a free port and logs which one it took — convenient for a
