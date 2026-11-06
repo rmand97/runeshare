@@ -12,6 +12,7 @@ classes target mobile; layer wider layouts with `sm:` (640px), `md:` (768px),
 - **Grids**: `grid gap-3 sm:grid-cols-2` — never a multi-column grid without a breakpoint prefix.
 - **Spacing**: tighter on mobile, grow at breakpoints (`py-8 sm:py-12`).
 - **Hover effects**: only behind `sm:` (`sm:hover:border-primary`) — touch has no hover.
+- **Buttons, link badges, row hover**: hover/focus-visible looks come from the `interactive` layer at the end of `app.css` (`.btn` variants, `a.badge`, rows with `sm:hover:bg-base-200/60` get a gold left rule). Don't re-add one-off hover classes for those; a `<span class="badge">` is status-only and gets no hover.
 - **Touch targets**: at least 44x44px. DaisyUI `btn` sizes handle this.
 - **Navigation**: wraps (`flex-wrap`); never `overflow-x-auto` that hides items.
 

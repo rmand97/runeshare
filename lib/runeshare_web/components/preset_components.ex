@@ -290,14 +290,17 @@ defmodule RuneshareWeb.PresetComponents do
       type="button"
       phx-click="toggle_like"
       aria-pressed={to_string(@preset.liked_by_me)}
-      class={["btn btn-sm", if(@preset.liked_by_me, do: "btn-primary", else: "btn-outline")]}
+      class={["group btn btn-sm", if(@preset.liked_by_me, do: "btn-primary", else: "btn-outline")]}
     >
-      <.icon name={if @preset.liked_by_me, do: "hero-heart-solid", else: "hero-heart"} class="size-4" />
+      <.icon
+        name={if @preset.liked_by_me, do: "hero-heart-solid", else: "hero-heart"}
+        class={heart_class()}
+      />
       <span>{if @preset.liked_by_me, do: "Liked", else: "Like"}</span>
       <span class="font-mono">{@preset.like_count}</span>
     </button>
-    <.link :if={!@current_user} navigate={~p"/sign-in"} class="btn btn-outline btn-sm">
-      <.icon name="hero-heart" class="size-4" /> Like
+    <.link :if={!@current_user} navigate={~p"/sign-in"} class="group btn btn-outline btn-sm">
+      <.icon name="hero-heart" class={heart_class()} /> Like
       <span class="font-mono">{@preset.like_count}</span>
     </.link>
     """
@@ -335,7 +338,12 @@ defmodule RuneshareWeb.PresetComponents do
     """
   end
 
-  defp tag_class, do: "badge rounded-sm badge-ghost font-mono badge-xs sm:hover:badge-primary"
+  defp tag_class, do: "badge rounded-sm badge-ghost font-mono badge-xs"
+
+  # The heart grows a little while its button is hovered or keyboard-focused.
+  defp heart_class,
+    do:
+      "size-4 transition-transform group-focus-visible:scale-125 motion-reduce:transition-none sm:group-hover:scale-125"
 
   defp initials(%{name: name}) when is_binary(name) and name != "" do
     name
