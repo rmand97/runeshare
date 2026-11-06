@@ -19,7 +19,9 @@ defmodule RuneshareWeb.Browser.TagPickerTest do
     |> wait_for_liveview()
     |> fill_in("Title", with: "Tag picker test")
     |> fill_in("Import string", with: watchdog_export())
-    |> type("#form_tags_text_input", "zammy")
+    # fill_in sets the text in one go; typing key by key right as the field gets
+    # focus can lose the first key to the picker's focus re-render.
+    |> fill_in("Tags (optional)", with: "zammy")
     # Suggestions round-trip through the server (debounced); slow under a busy suite.
     |> assert_has("#form_tags_live_select_component li", text: "zamorak", timeout: 5_000)
     |> click("#form_tags_live_select_component li", "zamorak")
