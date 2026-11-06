@@ -11,6 +11,11 @@ defmodule Runeshare.Sharing.DiscoveryTest do
       share_preset!(author, %{title: "Untagged"})
 
       assert tagged.tags == ["vorago", "hard-mode"]
+
+      nicknamed =
+        share_preset!(author, %{title: "Nicknamed", tags: ["Zammy", "rc", "my own tag"]})
+
+      assert nicknamed.tags == ["zamorak", "runecrafting", "my-own-tag"]
       assert [%{title: "Tagged"}] = Sharing.list_presets!(:watchdog_alarm, %{tag: "vorago"})
     end
 

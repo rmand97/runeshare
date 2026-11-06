@@ -67,6 +67,7 @@ defmodule Runeshare.MixProject do
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.13", only: [:dev, :test]},
       {:live_toast, "~> 0.11.0"},
+      {:live_select, "~> 1.7"},
       {:tidewave, "~> 0.9.2", only: [:dev]},
       {:usage_rules, "~> 1.3", only: [:dev]},
       {:ash_ai, "~> 1.5"},

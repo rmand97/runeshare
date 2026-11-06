@@ -1,7 +1,9 @@
 defmodule Runeshare.Sharing.PresetVersion do
   @moduledoc """
-  An immutable snapshot of a preset's title, description and import string.
-  `number` counts up from 1; the highest number is the preset's current version.
+  A snapshot of a preset's title, description and import string. `number`
+  counts up from 1; the highest number is the preset's current version.
+  Older versions never change; the newest one is updated in place when its
+  author edits again shortly after saving it (see `SnapshotVersion`).
   """
 
   use Ash.Resource,
@@ -34,6 +36,11 @@ defmodule Runeshare.Sharing.PresetVersion do
       primary? true
       accept [:number, :title, :description, :content, :note]
     end
+
+    update :amend do
+      description "Only through the preset's edit action, for a quick re-edit of the newest version."
+      accept [:title, :description, :content, :note]
+    end
   end
 
   policies do
@@ -47,7 +54,7 @@ defmodule Runeshare.Sharing.PresetVersion do
       authorize_if relates_to_actor_via([:preset, :author])
     end
 
-    policy action_type(:create) do
+    policy action_type([:create, :update]) do
       authorize_if accessing_from(Runeshare.Sharing.Preset, :versions)
     end
   end

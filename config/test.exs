@@ -24,6 +24,9 @@ config :runeshare, Runeshare.Repo,
 config :runeshare, sql_sandbox: true
 config :runeshare, :admin_emails, ["admin@example.com"]
 
+# Every edit makes a new version unless a test turns merging on.
+config :runeshare, :version_merge_window_seconds, 0
+
 # Cover images go to an in-memory store (started in test_helper.exs).
 config :runeshare, Runeshare.Sharing.Preset, storage: [service: {AshStorage.Service.Test, []}]
 
@@ -58,5 +61,7 @@ config :phoenix_test,
   otp_app: :runeshare,
   playwright: [
     screenshot: System.get_env("PW_SCREENSHOT", "false") in ~w(t true),
-    trace: System.get_env("PW_TRACE", "false") in ~w(t true)
+    trace: System.get_env("PW_TRACE", "false") in ~w(t true),
+    # Let a page's async loaders finish before the test's DB owner goes away.
+    ecto_sandbox_stop_owner_delay: 100
   ]

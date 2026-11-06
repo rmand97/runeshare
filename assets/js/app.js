@@ -24,13 +24,14 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/runeshare"
 import {createLiveToastHook} from "live_toast"
+import liveSelectHooks from "live_select"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, LiveToast: createLiveToastHook()},
+  hooks: {...colocatedHooks, ...liveSelectHooks, LiveToast: createLiveToastHook()},
 })
 
 // Show progress bar on live navigation and form submits

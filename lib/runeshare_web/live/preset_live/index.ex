@@ -12,6 +12,7 @@ defmodule RuneshareWeb.PresetLive.Index do
   alias Phoenix.LiveView.AsyncResult
   alias Phoenix.Socket.Broadcast
   alias Runeshare.Sharing
+  alias Runeshare.Sharing.Preset.Changes.NormalizeTags
 
   @page_size 24
 
@@ -39,7 +40,8 @@ defmodule RuneshareWeb.PresetLive.Index do
     offset = params |> Map.get("offset", "0") |> parse_offset()
     sort = parse_sort(params["sort"])
     kind = socket.assigns.kind
-    tag = params |> Map.get("tag", "") |> String.trim()
+    # `?tag=Zammy` finds presets tagged "zamorak", the same way saving normalises tags.
+    tag = params |> Map.get("tag", "") |> List.wrap() |> NormalizeTags.normalize() |> Enum.join()
 
     socket =
       socket

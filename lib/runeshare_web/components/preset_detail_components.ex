@@ -36,7 +36,13 @@ defmodule RuneshareWeb.PresetDetailComponents do
     """
   end
 
-  @doc "Every version of a preset, newest first, each linking to its page."
+  @shown_versions 3
+
+  @doc """
+  A preset's versions, newest first, each linking to its page. The newest
+  #{@shown_versions} and the one on screen are listed; older ones fold away
+  behind "Show N older versions".
+  """
   attr :versions, :any, required: true, doc: "AsyncResult holding a list of PresetVersion"
   attr :preset, :any, required: true
   attr :viewing, :integer, required: true, doc: "number of the version on screen"
@@ -49,42 +55,73 @@ defmodule RuneshareWeb.PresetDetailComponents do
         <:failed>
           <p class="p-3 text-sm text-error">Couldn't load versions.</p>
         </:failed>
+        <% {shown, older} = split_versions(versions, @viewing) %>
         <ul id="versions" class="divide-y divide-base-content/5 text-sm">
-          <li :for={version <- versions}>
-            <.link
-              patch={version_path(@preset, version.number)}
-              aria-current={version.number == @viewing && "page"}
-              class={[
-                "flex items-center gap-2 px-3 py-2 sm:hover:bg-base-200/60",
-                version.number == @viewing && "border-l-2 border-l-primary bg-base-200/60"
-              ]}
-            >
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="font-mono font-bold text-primary">v{version.number}</span>
-                  <span
-                    :if={version.number == @preset.version}
-                    class="badge rounded-sm font-display badge-xs tracking-wider uppercase badge-primary"
-                  >
-                    Latest
-                  </span>
-                  <span class="ml-auto text-xs text-base-content/65">
-                    <.timestamp at={version.inserted_at} />
-                  </span>
-                </div>
-                <p
-                  :if={version.note}
-                  class="mt-0.5 truncate text-xs text-base-content/70"
-                  title={version.note}
-                >
-                  {version.note}
-                </p>
-              </div>
-            </.link>
-          </li>
+          <.version_row :for={version <- shown} version={version} preset={@preset} viewing={@viewing} />
         </ul>
+        <details :if={older != []} id="older-versions" class="border-t border-base-content/5 text-sm">
+          <summary class="cursor-pointer px-3 py-2 text-xs text-base-content/70 sm:hover:bg-base-200/60">
+            Show {length(older)} older {if length(older) == 1, do: "version", else: "versions"}
+          </summary>
+          <ul class="divide-y divide-base-content/5">
+            <.version_row
+              :for={version <- older}
+              version={version}
+              preset={@preset}
+              viewing={@viewing}
+            />
+          </ul>
+        </details>
       </.async_result>
     </.panel>
+    """
+  end
+
+  # Newest first: the newest few plus the one on screen, and the rest.
+  defp split_versions(versions, viewing) do
+    {newest, rest} = Enum.split(versions, @shown_versions)
+    {current, older} = Enum.split_with(rest, &(&1.number == viewing))
+    {newest ++ current, older}
+  end
+
+  attr :version, :any, required: true
+  attr :preset, :any, required: true
+  attr :viewing, :integer, required: true
+
+  defp version_row(assigns) do
+    ~H"""
+    <li id={"version-#{@version.number}"}>
+      <.link
+        patch={version_path(@preset, @version.number)}
+        aria-current={@version.number == @viewing && "page"}
+        class={[
+          "flex items-center gap-2 px-3 py-2 sm:hover:bg-base-200/60",
+          @version.number == @viewing && "border-l-2 border-l-primary bg-base-200/60"
+        ]}
+      >
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-bold text-primary">v{@version.number}</span>
+            <span
+              :if={@version.number == @preset.version}
+              class="badge rounded-sm font-display badge-xs tracking-wider uppercase badge-primary"
+            >
+              Latest
+            </span>
+            <span class="ml-auto text-xs text-base-content/65">
+              <.timestamp at={@version.inserted_at} />
+            </span>
+          </div>
+          <p
+            :if={@version.note}
+            class="mt-0.5 truncate text-xs text-base-content/70"
+            title={@version.note}
+          >
+            {@version.note}
+          </p>
+        </div>
+      </.link>
+    </li>
     """
   end
 

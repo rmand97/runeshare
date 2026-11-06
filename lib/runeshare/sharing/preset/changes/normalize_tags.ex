@@ -1,12 +1,14 @@
 defmodule Runeshare.Sharing.Preset.Changes.NormalizeTags do
   @moduledoc """
-  Lowercases tags, turns inner whitespace into dashes and drops blanks and repeats,
-  so `"Vorago "`, `"vorago"` and `"VORAGO"` are one tag.
+  Lowercases tags, turns inner whitespace into dashes, rewrites known nicknames
+  to their standard tag (`TagCatalog`) and drops blanks and repeats, so
+  `"Vorago "`, `"VORAGO"` and `"zammy"`/`"Zamorak"` each end up as one tag.
   """
 
   use Ash.Resource.Change
 
   alias Ash.Changeset
+  alias Runeshare.Sharing.TagCatalog
 
   @impl Ash.Resource.Change
   def change(changeset, _opts, _context) do
@@ -24,6 +26,7 @@ defmodule Runeshare.Sharing.Preset.Changes.NormalizeTags do
     tags
     |> Enum.map(&(&1 |> String.trim() |> String.downcase() |> String.replace(~r/\s+/, "-")))
     |> Enum.reject(&(&1 == ""))
+    |> Enum.map(&TagCatalog.canonical/1)
     |> Enum.uniq()
   end
 end

@@ -29,6 +29,24 @@ defmodule RuneshareWeb.PresetShowTest do
     end
   end
 
+  describe "versions list" do
+    test "shows the newest three and the one on screen; older ones fold away", %{conn: conn} do
+      author = register_user!()
+      preset = share_preset!(author)
+
+      Enum.reduce(2..6, preset, fn n, preset ->
+        Sharing.edit_preset!(preset, %{title: "Version #{n}"}, actor: author)
+      end)
+
+      conn
+      |> visit(~p"/presets/#{preset}/v/1")
+      |> assert_has("#versions li", count: 4, timeout: 2_000)
+      |> assert_has("#versions #version-1")
+      |> assert_has("#older-versions summary", text: "Show 2 older versions")
+      |> assert_has("#older-versions #version-3")
+    end
+  end
+
   describe "versions" do
     setup do
       author = register_user!()

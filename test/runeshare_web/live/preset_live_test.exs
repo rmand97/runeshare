@@ -1,9 +1,21 @@
 defmodule RuneshareWeb.PresetLiveTest do
   use RuneshareWeb.ConnCase, async: true
 
-  # PhoenixTest can't blur a field; the blur-dependent test drives the LiveView directly.
+  # PhoenixTest can't blur a field or drive the tag picker's JS events; those
+  # tests drive the LiveView directly.
   import Phoenix.LiveViewTest,
-    only: [live: 2, form: 3, element: 2, render_change: 1, render_blur: 1]
+    only: [
+      live: 2,
+      form: 3,
+      element: 2,
+      element: 3,
+      has_element?: 1,
+      render_change: 1,
+      render_blur: 1,
+      render_focus: 1,
+      render_hook: 3,
+      render_submit: 1
+    ]
 
   alias Runeshare.Sharing
 
@@ -167,23 +179,31 @@ defmodule RuneshareWeb.PresetLiveTest do
       |> assert_has("p.text-error", text: "must be a JPEG, PNG or WebP image")
     end
 
-    test "tags are previewed while typing and shown in the listing", %{conn: conn} do
-      conn
-      |> log_in_user(register_user!())
-      |> visit(~p"/watchdog/new")
-      |> fill_in("Title", with: "Vorago hard mode alarms")
-      |> fill_in("Import string", with: watchdog_export())
-      |> fill_in("Tags (optional)", with: "Vorago, hard mode")
-      |> assert_has("#tag-preview .badge", text: "hard-mode")
-      |> click_button("Save preset")
-      |> assert_has("h1", text: "Vorago hard mode alarms")
+    test "the tag picker suggests standard tags for nicknames and saves the pick", %{conn: conn} do
+      {:ok, view, _html} = conn |> log_in_user(register_user!()) |> live(~p"/watchdog/new")
+      picker = "form_tags_live_select_component"
 
-      [preset] = Sharing.list_presets!(:watchdog_alarm, %{tag: "vorago"})
-      assert preset.tags == ["vorago", "hard-mode"]
+      # What the picker's JS sends when focused and while the user types "zammy".
+      view |> element("#form_tags_text_input") |> render_focus()
+      render_hook(view, "live_select_change", %{"text" => "zammy", "id" => picker})
+      assert view |> element("##{picker} ul li", "zamorak") |> has_element?()
+
+      view |> element("##{picker}") |> render_hook("option_click", %{"idx" => "0"})
+
+      view
+      |> form("#preset-form", form: %{title: "Zamorak P4 alarms", content: watchdog_export()})
+      |> render_submit()
+
+      [preset] = Sharing.list_presets!(:watchdog_alarm, %{tag: "zamorak"})
+      assert preset.tags == ["zamorak"]
+    end
+
+    test "the listing filter understands nicknames too", %{conn: conn} do
+      share_preset!(register_user!(), %{title: "Zamorak P4 alarms", tags: ["zamorak"]})
 
       conn
-      |> visit(~p"/watchdog")
-      |> assert_has("#presets a.badge", text: "hard-mode", timeout: 2_000)
+      |> visit(~p"/watchdog?tag=Zammy")
+      |> assert_has("#presets-body a", text: "Zamorak P4 alarms", timeout: 2_000)
     end
 
     test "warns when the exact string is already shared", %{conn: conn} do

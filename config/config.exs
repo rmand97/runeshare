@@ -83,6 +83,10 @@ config :phoenix_live_view,
   root_tag_attribute: "phx-r"
 
 # Configure esbuild (the version is required)
+# An edit within this many seconds of the newest version updates that version
+# instead of adding another (typo fixes right after saving). 0 disables it.
+config :runeshare, :version_merge_window_seconds, 30 * 60
+
 # LiveToast's built-in connection notices use the app's translations.
 config :live_toast, gettext_backend: RuneshareWeb.Gettext
 

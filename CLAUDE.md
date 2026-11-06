@@ -72,8 +72,8 @@ AshAI MCP tools: code generation + resource introspection (deferred, load with `
 
 - App module `Runeshare`, source `lib/runeshare/`. Web layer `RuneshareWeb`, `lib/runeshare_web/`.
 - Domains: `Runeshare.Accounts` (User, UserIdentity, Token — Google sign-in only; `update_profile` for the display name) and `Runeshare.Sharing` (Preset, PresetVersion, Like, Comment, Report, PresetCopy).
-- **Versioning**: every `share`/`edit` writes an immutable `PresetVersion` snapshot (`number` 1, 2, 3…) via `Preset.Changes.SnapshotVersion`; `Preset.version` is the newest number and the Preset row always holds the newest content. Old versions live at `/presets/:id/v/:number`. An edit that changes no versioned field and has no change note (e.g. tags only) keeps the current version. Comments and likes belong to the preset, not a version.
-- **Discovery**: `tags` (≤5, normalised by `Preset.Changes.NormalizeTags`), `copy_count` (aggregate over `PresetCopy`, one row per preset + visitor; `record_copy!(preset_id, socket.assigns.visitor)` — `@visitor` comes from `LiveUserAuth`, `"user:<id>"` or `"anon:<session visitor_id>"`), `content_hash` (`find_duplicate_presets`), sorts `:newest | :most_liked | :most_copied`. `list_presets!(kind, %{search:, sort:, tag:}, opts)` — optional filters go in the params map, never positionally (positional optionals swallow keyword opts).
+- **Versioning**: every `share`/`edit` writes an immutable `PresetVersion` snapshot (`number` 1, 2, 3…) via `Preset.Changes.SnapshotVersion`; `Preset.version` is the newest number and the Preset row always holds the newest content. Old versions live at `/presets/:id/v/:number`. An edit that changes no versioned field and has no change note (e.g. tags only) keeps the current version; an edit within `:version_merge_window_seconds` (30 min; 0 in tests) of the newest version's creation updates that version in place. The versions panel shows the newest 3 + the one on screen and folds the rest. Comments and likes belong to the preset, not a version.
+- **Discovery**: `tags` (≤5, normalised by `Preset.Changes.NormalizeTags`, which also maps nicknames to standard tags via `Sharing.TagCatalog`; free tags allowed; the form picks tags with LiveSelect, suggestions from `TagCatalog.suggest/1`), `copy_count` (aggregate over `PresetCopy`, one row per preset + visitor; `record_copy!(preset_id, socket.assigns.visitor)` — `@visitor` comes from `LiveUserAuth`, `"user:<id>"` or `"anon:<session visitor_id>"`), `content_hash` (`find_duplicate_presets`), sorts `:newest | :most_liked | :most_copied`. `list_presets!(kind, %{search:, sort:, tag:}, opts)` — optional filters go in the params map, never positionally (positional optionals swallow keyword opts).
 - **Moderation**: `User.role` is `:admin` for addresses in `ADMIN_EMAILS` (re-evaluated every sign-in). Admins bypass Preset/Report policies, can delete any comment, `hide_preset`/`unhide_preset` (hidden presets — and their versions, comments and likes — are visible only to author + admins; creates that hang off a preset use `Changes.RequireVisiblePreset`). `Report` (one per user+preset, `report_preset!(preset_id, reason, %{note:}, opts)`), `list_open_reports`, `resolve_report`.
 - **Rate limits**: `Runeshare.Sharing.Validations.RateLimit` counts the actor's recent rows in the DB (10 presets/hour, 10 comments/5 min).
 - **Real-time**: Ash `pub_sub` notifiers broadcast through `RuneshareWeb.Endpoint` on `presets:shared:<kind>`, `presets:deleted:<kind>`, `presets:<id>`, `likes:<preset_id>`, `comments:<preset_id>`. Notification data carries no loads — re-fetch through a code interface.
@@ -134,7 +134,7 @@ Suppress with `# credo:disable-for-next-definition <Check>` plus a reason commen
 ## Phoenix 1.8 specifics
 
 - Begin every LiveView template with `<Layouts.app flash={@flash} current_user={@current_user}>`.
-- `<.flash_group>` lives only in `layouts.ex`.
+- Messages are LiveToast toasts, rendered by `LiveToast.toast_group` in `Layouts.app` only. In-page: `toast(socket, :info, msg)` (imported in LiveViews). Across a navigation: `put_flash/3` (shown as a toast). Both vanish after 5 s; no connection-lost notices.
 - `<.icon name="hero-x-mark" class="size-5"/>` for icons; never `Heroicons` modules.
 - `<.input>` from `core_components.ex` for form inputs.
 
@@ -147,7 +147,7 @@ Design and build mobile first. Base classes target phones; layer `sm:`/`md:`/`lg
 - `ash-framework` — Ash and ash_* usage rules
 - `phoenix-framework` — Phoenix and phoenix_* usage rules
 - `frontend` — mobile-first, components, Tailwind v4 + DaisyUI
-- `testing` — builders, PhoenixTest, Playwright
+- `testing` — builders, PhoenixTest, Playwright (`@moduletag :playwright`, excluded in CI)
 - `parallel-agents` — slots, ports, worktrees; read before running the app or tests
 - `credo-checks` — the check suites and the suppression ladder
 

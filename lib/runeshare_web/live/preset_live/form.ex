@@ -5,6 +5,7 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   use RuneshareWeb, :live_view
 
+  import LiveSelect
   import RuneshareWeb.PresetComponents
 
   alias Runeshare.Sharing
@@ -12,13 +13,14 @@ defmodule RuneshareWeb.PresetLive.Form do
   alias Runeshare.Sharing.Preset.Changes.NormalizeTags
   alias Runeshare.Sharing.Preset.Changes.SnapshotVersion
   alias Runeshare.Sharing.Preset.Validations.CoverImage
+  alias Runeshare.Sharing.TagCatalog
 
   # Inputs rendered with their own error messages; anything else shows above the buttons.
   @field_inputs [:title, :description, :content, :tags, :change_note, :cover_image]
 
   # Typed fields stay quiet until the user leaves them once ("touch"); from then on
   # their errors update live. The import string is pasted whole, so it's checked at once.
-  @touchable ~w(title description tags change_note)
+  @touchable ~w(title description change_note)
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
@@ -41,19 +43,28 @@ defmodule RuneshareWeb.PresetLive.Form do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("validate", %{"form" => params} = event, socket) do
-    tags_text = Map.get(event, "tags_text", socket.assigns.tags_text)
-
+  def handle_event("validate", %{"form" => params}, socket) do
     params =
       params
       |> maybe_suggest_title(socket.assigns.kind)
-      |> Map.put("tags", split_tags(tags_text))
+      |> put_tags()
 
     socket =
       socket
       |> assign(form: AshPhoenix.Form.validate(socket.assigns.form, params))
-      |> assign(tags_text: tags_text)
       |> assign_duplicates(Map.get(params, "content", ""))
+
+    {:noreply, socket}
+  end
+
+  # The tag picker asks for suggestions while the user types.
+  def handle_event("live_select_change", %{"text" => text, "id" => id}, socket) do
+    typed = NormalizeTags.normalize([text])
+
+    send_update(LiveSelect.Component,
+      id: id,
+      options: Enum.uniq(TagCatalog.suggest(text) ++ typed)
+    )
 
     {:noreply, socket}
   end
@@ -67,9 +78,8 @@ defmodule RuneshareWeb.PresetLive.Form do
     {:noreply, cancel_upload(socket, :cover_image, ref)}
   end
 
-  def handle_event("save", %{"form" => params} = event, socket) do
-    tags_text = Map.get(event, "tags_text", socket.assigns.tags_text)
-    params = Map.put(params, "tags", split_tags(tags_text))
+  def handle_event("save", %{"form" => params}, socket) do
+    params = put_tags(params)
     form = AshPhoenix.Form.validate(socket.assigns.form, params)
 
     # Only take the picked image once everything else is valid, so a typo
@@ -186,31 +196,26 @@ defmodule RuneshareWeb.PresetLive.Form do
             remove_field={@form[:remove_cover_image]}
             current_url={@preset && @preset.cover_image_url}
           />
-          <.input
-            name="tags_text"
-            id="preset-tags"
-            label="Tags (optional)"
-            value={@tags_text}
-            errors={if "tags" in @touched, do: tag_errors(@form), else: []}
-            placeholder="e.g. vorago, hard mode"
-            autocomplete="off"
-            phx-debounce="300"
-            phx-blur="touch"
-            phx-value-field="tags"
-          />
-          <p class="-mt-1 mb-2 text-xs text-base-content/65">Up to 5, e.g. boss or skill</p>
-          <div
-            :if={split_tags(@tags_text) != []}
-            id="tag-preview"
-            class="mb-2 flex flex-wrap gap-1"
-          >
-            <span
-              :for={tag <- split_tags(@tags_text)}
-              class="badge rounded-sm badge-ghost font-mono badge-sm"
-            >
-              {tag}
-            </span>
-          </div>
+          <fieldset class="fieldset" id="preset-tags">
+            <label for={"#{@form[:tags].id}_text_input"} class="fieldset-legend">
+              Tags (optional)
+            </label>
+            <.live_select
+              field={@form[:tags]}
+              mode={:tags}
+              max_selectable={5}
+              user_defined_options={true}
+              style={:daisyui}
+              update_min_len={1}
+              debounce={150}
+              placeholder="Type a boss, skill or activity"
+              text_input_class="input w-full"
+            />
+            <p class="text-xs text-base-content/65">
+              Up to 5. Pick a suggestion, or press Enter to add your own.
+            </p>
+            <p :for={error <- tag_errors(@form)} class="text-sm text-error">{error}</p>
+          </fieldset>
           <.input
             :if={@preset}
             field={@form[:change_note]}
@@ -237,11 +242,15 @@ defmodule RuneshareWeb.PresetLive.Form do
             id="next-version"
             class="text-center text-xs text-base-content/70 sm:mr-auto sm:text-left"
           >
-            <%= if new_version?(@form) do %>
-              Saving will create <span class="font-mono text-primary">v{@preset.version + 1}</span>.
-              Older versions stay available.
-            <% else %>
-              Nothing versioned changed yet — saving keeps <span class="font-mono text-primary">v{@preset.version}</span>.
+            <%= cond do %>
+              <% new_version?(@form) and @amends_version -> %>
+                Saving updates <span class="font-mono text-primary">v{@preset.version}</span>
+                — it was saved less than {div(SnapshotVersion.merge_window(), 60)} minutes ago.
+              <% new_version?(@form) -> %>
+                Saving will create <span class="font-mono text-primary">v{@preset.version + 1}</span>.
+                Older versions stay available.
+              <% true -> %>
+                Nothing versioned changed yet — saving keeps <span class="font-mono text-primary">v{@preset.version}</span>.
             <% end %>
           </p>
           <.link navigate={kind_path(@kind)} class="btn btn-ghost btn-sm">Cancel</.link>
@@ -436,7 +445,13 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   defp new_version?(form), do: SnapshotVersion.new_version?(form.source.source)
 
-  defp split_tags(text), do: text |> String.split(",") |> NormalizeTags.normalize()
+  # The tag picker posts the chosen tags as `tags`, or `tags_empty_selection`
+  # once every tag has been removed.
+  defp put_tags(%{"tags" => tags} = params),
+    do: Map.put(params, "tags", tags |> List.wrap() |> NormalizeTags.normalize())
+
+  defp put_tags(%{"tags_empty_selection" => _empty} = params), do: Map.put(params, "tags", [])
+  defp put_tags(params), do: params
 
   defp tag_errors(form), do: Enum.map(form[:tags].errors, &translate_error/1)
 
@@ -495,7 +510,7 @@ defmodule RuneshareWeb.PresetLive.Form do
       kind: preset.kind,
       preset: preset,
       page_title: "Edit #{preset.title}",
-      tags_text: Enum.join(preset.tags, ", ")
+      amends_version: amends_newest_version?(preset, user)
     )
     |> assign(duplicates: [], checked_content: preset.content, touched: MapSet.new())
   end
@@ -514,9 +529,16 @@ defmodule RuneshareWeb.PresetLive.Form do
       form: form,
       kind: kind,
       preset: nil,
-      page_title: "Share a #{kind_label(kind)}",
-      tags_text: ""
+      page_title: "Share a #{kind_label(kind)}"
     )
     |> assign(duplicates: [], checked_content: "", touched: MapSet.new())
+  end
+
+  # Decided once per visit; the hint can lag the window by the time spent editing.
+  defp amends_newest_version?(preset, user) do
+    case Sharing.get_preset_version(preset.id, preset.version, actor: user) do
+      {:ok, newest} -> SnapshotVersion.amends?(newest)
+      {:error, _missing} -> false
+    end
   end
 end
