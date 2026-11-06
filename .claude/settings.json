@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mix help *)",
+      "Bash(mix compile *)",
+      "Bash(mix format *)",
+      "Bash(mix credo *)",
+      "Bash(mix test *)",
+      "Bash(MIX_ENV=test mix *)",
+      "Bash(mix deps.get)",
+      "Bash(mix ash.codegen *)",
+      "Bash(mix ash.migrate)",
+      "Bash(mix usage_rules.*)",
+      "Bash(mix runeshare.slot)",
+      "Bash(mix precommit)",
+      "Bash(bin/agent-worktree list)",
+      "WebFetch(domain:hexdocs.pm)",
+      "WebFetch(domain:hex.pm)",
+      "mcp__tidewave__get_docs",
+      "mcp__tidewave__get_logs",
+      "mcp__tidewave__get_source_location",
+      "mcp__tidewave__get_ash_resources",
+      "mcp__tidewave__search_package_docs",
+      "mcp__ash_ai__list_ash_resources",
+      "mcp__ash_ai__list_generators",
+      "mcp__ash_ai__get_usage_rules"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

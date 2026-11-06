@@ -1,4 +1,8 @@
 defmodule Runeshare.Accounts.User do
+  @moduledoc """
+  A person signed in with Google. Created on first sign-in, refreshed on each one after.
+  """
+
   use Ash.Resource,
     otp_app: :runeshare,
     domain: Runeshare.Accounts,
@@ -7,12 +11,6 @@ defmodule Runeshare.Accounts.User do
     extensions: [AshAuthentication]
 
   authentication do
-    add_ons do
-      log_out_everywhere do
-        apply_on_password_change? true
-      end
-    end
-
     tokens do
       enabled? true
       token_resource Runeshare.Accounts.Token
@@ -22,21 +20,32 @@ defmodule Runeshare.Accounts.User do
     end
 
     strategies do
-      magic_link do
-        identity_field :email
-        registration_enabled? true
-        require_interaction? true
-
-        sender Runeshare.Accounts.User.Senders.SendMagicLinkEmail
+      google do
+        client_id Runeshare.Secrets
+        redirect_uri Runeshare.Secrets
+        client_secret Runeshare.Secrets
+        identity_resource Runeshare.Accounts.UserIdentity
       end
-
-      remember_me :remember_me
     end
   end
 
   postgres do
     table "users"
     repo Runeshare.Repo
+  end
+
+  field_policies do
+    field_policy_bypass :* do
+      authorize_if AshAuthentication.Checks.AshAuthenticationInteraction
+    end
+
+    field_policy :email do
+      authorize_if expr(id == ^actor(:id))
+    end
+
+    field_policy :* do
+      authorize_if always()
+    end
   end
 
   actions do
@@ -49,51 +58,40 @@ defmodule Runeshare.Accounts.User do
       prepare AshAuthentication.Preparations.FilterBySubject
     end
 
-    read :get_by_email do
-      description "Looks up a user by their email"
-      get_by :email
+    update :update_profile do
+      description "The signed-in user changing their own display name."
+      accept [:name]
     end
 
-    create :sign_in_with_magic_link do
-      description "Sign in or register a user with magic link."
-
-      argument :token, :string do
-        description "The token from the magic link that was sent to the user"
-        allow_nil? false
-      end
-
-      argument :remember_me, :boolean do
-        description "Whether to generate a remember me token"
-        allow_nil? true
-      end
-
+    create :register_with_google do
+      description "Sign in or register a user with Google."
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
       upsert? true
       upsert_identity :unique_email
-      upsert_fields [:email]
+      # `name` is only taken from Google on first sign-in; afterwards it's the
+      # user's own display name, edited on the account page.
+      # `role` follows ADMIN_EMAILS on every sign-in, so removing an address demotes it.
+      upsert_fields [:email, :avatar_url, :role]
 
-      # Uses the information from the token to create or sign in the user
-      change AshAuthentication.Strategy.MagicLink.SignInChange
-
-      change {AshAuthentication.Strategy.RememberMe.MaybeGenerateTokenChange,
-              strategy_name: :remember_me}
-
-      metadata :token, :string do
-        allow_nil? false
-      end
-    end
-
-    action :request_magic_link do
-      argument :email, :ci_string do
-        allow_nil? false
-      end
-
-      run AshAuthentication.Strategy.MagicLink.Request
+      change AshAuthentication.GenerateTokenChange
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
+      change Runeshare.Accounts.User.Changes.ApplyGoogleProfile
     end
   end
 
   policies do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
+    end
+
+    # Display name and avatar appear next to everything a user shares.
+    policy action_type(:read) do
+      authorize_if always()
+    end
+
+    policy action(:update_profile) do
+      authorize_if expr(id == ^actor(:id))
     end
   end
 
@@ -104,6 +102,27 @@ defmodule Runeshare.Accounts.User do
       allow_nil? false
       public? true
     end
+
+    attribute :name, :string do
+      public? true
+      constraints min_length: 2, max_length: 40, trim?: true
+    end
+
+    attribute :role, :atom do
+      description "`:admin` for addresses in ADMIN_EMAILS; set on every sign-in."
+      allow_nil? false
+      public? true
+      default :user
+      writable? false
+      constraints one_of: [:user, :admin]
+    end
+
+    attribute :avatar_url, :string do
+      public? true
+      constraints max_length: 2048
+    end
+
+    timestamps()
   end
 
   identities do

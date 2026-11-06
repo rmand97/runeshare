@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+#
+# Create and tear down isolated git worktrees so several agents can work this
+# repo at the same time.
+#
+# Each worktree owns a slot (1-9). Every port and database name derives from it
+# — see `mix runeshare.slot` and the `parallel-agents` skill. The main checkout is
+# always slot 0 and is never touched by this script.
+#
+#   bin/agent-worktree new <name> [--slot N]
+#   bin/agent-worktree list
+#   bin/agent-worktree rm <name> [--force]
+#
+set -euo pipefail
+
+MAX_SLOT=9
+ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+PARENT="$(dirname "$ROOT")"
+PREFIX="$(basename "$ROOT")-wt"
+
+die() { printf '\033[31merror\033[0m %s\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m%s\033[0m %s\n' "$1" "${*:2}"; }
+
+worktree_dir() { echo "$PARENT/$PREFIX-$1"; }
+
+slot_of_name() {
+  # Prints the slot a named worktree occupies, or nothing.
+  local name=$1 slot dir
+  for slot in $(seq 1 "$MAX_SLOT"); do
+    dir="$(worktree_dir "$slot")"
+    if [[ -f "$dir/.agent-name" ]] && [[ "$(cat "$dir/.agent-name")" == "$name" ]]; then
+      echo "$slot"
+      return
+    fi
+  done
+}
+
+# Databases are dropped from inside the worktree, through its own config, so the
+# slot's names are derived rather than reconstructed here and no psql client is
+# needed. Must run before the worktree directory goes away.
+drop_databases() {
+  local dir=$1
+  local flags="--quiet --force-drop --no-compile --no-deps-check"
+  # shellcheck disable=SC2086
+  (cd "$dir" && mix ecto.drop $flags && MIX_ENV=test mix ecto.drop $flags) ||
+    die "could not drop the slot's databases — is \`docker compose up -d\` running?"
+  info "  dropped" "the slot's dev and test databases"
+}
+
+cmd_new() {
+  local name="" slot=""
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --slot) slot=$2; shift 2 ;;
+      -*) die "unknown flag $1" ;;
+      *) name=$1; shift ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "usage: bin/agent-worktree new <name> [--slot N]"
+  [[ "$name" =~ ^[a-z0-9][a-z0-9-]*$ ]] || die "name must be lowercase letters, digits and dashes"
+  [[ -z "$(slot_of_name "$name")" ]] || die "a worktree named '$name' already exists"
+
+  if [[ -n "$slot" ]]; then
+    [[ "$slot" =~ ^[1-9]$ ]] || die "--slot must be 1..$MAX_SLOT (slot 0 is the main checkout)"
+    [[ ! -d "$(worktree_dir "$slot")" ]] || die "slot $slot is already taken"
+  else
+    for candidate in $(seq 1 "$MAX_SLOT"); do
+      if [[ ! -d "$(worktree_dir "$candidate")" ]]; then slot=$candidate; break; fi
+    done
+    [[ -n "$slot" ]] || die "all $MAX_SLOT slots are in use — run \`bin/agent-worktree list\`"
+  fi
+
+  local dir port
+  dir="$(worktree_dir "$slot")"
+  port=$((4000 + slot))
+
+  info "slot $slot" "$dir  port $port  db runeshare_dev_$slot"
+
+  git -C "$ROOT" worktree add "$dir" -b "agent/$name"
+  echo "$name" > "$dir/.agent-name"
+
+  # Dotenvy sources .env in dev and test; .env* is gitignored.
+  {
+    echo "# Written by bin/agent-worktree. Slot $slot owns these ports and databases."
+    echo "RUNESHARE_SLOT=$slot"
+    echo "RUNESHARE_PORT=$port"
+  } > "$dir/.env"
+
+  # Carry over local secrets (Google OAuth keys and the like) from the main checkout.
+  if [[ -f "$ROOT/.env" ]]; then
+    grep -vE '^(#|RUNESHARE_SLOT=|RUNESHARE_PORT=|PORT=|$)' "$ROOT/.env" >> "$dir/.env" || true
+  fi
+
+  # Share the caches that are identical across checkouts. deps/ and _build/ stay
+  # per-worktree: sharing them across differing mix.lock files corrupts builds.
+  for shared in assets/node_modules; do
+    if [[ -d "$ROOT/$shared" && ! -e "$dir/$shared" ]]; then
+      mkdir -p "$(dirname "$dir/$shared")"
+      ln -s "$ROOT/$shared" "$dir/$shared"
+      info "  shared" "$shared -> main checkout"
+    fi
+  done
+
+  info "  setup" "mix setup (deps, database, assets, seeds) — this takes a few minutes"
+  (cd "$dir" && mix setup)
+
+  cat <<EOF
+
+$(info "ready" "slot $slot")
+
+  bash/zsh:  cd $dir && set -a && . ./.env && set +a && claude
+  fish:      cd $dir; and export (grep -v '^#' .env | xargs -L1); and claude
+
+mix commands in the worktree read .env by themselves. Claude does not: .mcp.json
+expands \$RUNESHARE_PORT in the launching shell, so a Claude started without it points
+tidewave and ash_ai at slot 0's app instead of this one.
+
+  app            http://localhost:$port
+  live debugger  http://localhost:$((4020 + slot))
+  databases      runeshare_dev_$slot, runeshare_test_$slot
+EOF
+}
+
+cmd_list() {
+  printf '%-5s %-14s %-7s %-9s %s\n' SLOT NAME PORT SERVER BRANCH
+  local dir name port state branch
+  for slot in $(seq 0 "$MAX_SLOT"); do
+    if [[ $slot -eq 0 ]]; then dir="$ROOT"; else dir="$(worktree_dir "$slot")"; fi
+    [[ -d "$dir" ]] || continue
+    name="main"
+    [[ -f "$dir/.agent-name" ]] && name="$(cat "$dir/.agent-name")"
+    port=$((4000 + slot))
+    if lsof -ti:"$port" >/dev/null 2>&1; then state="running"; else state="-"; fi
+    branch="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+    printf '%-5s %-14s %-7s %-9s %s\n' "$slot" "$name" "$port" "$state" "$branch"
+  done
+}
+
+cmd_rm() {
+  local name="" force=0
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      --force) force=1; shift ;;
+      -*) die "unknown flag $1" ;;
+      *) name=$1; shift ;;
+    esac
+  done
+  [[ -n "$name" ]] || die "usage: bin/agent-worktree rm <name> [--force]"
+
+  local slot dir branch
+  slot="$(slot_of_name "$name")"
+  [[ -n "$slot" ]] || die "no worktree named '$name' — run \`bin/agent-worktree list\`"
+  dir="$(worktree_dir "$slot")"
+  branch="agent/$name"
+
+  if lsof -ti:$((4000 + slot)) >/dev/null 2>&1; then
+    die "slot $slot still has a server on port $((4000 + slot)) — stop it first"
+  fi
+
+  if [[ $force -eq 0 ]]; then
+    if [[ -n "$(git -C "$dir" status --porcelain)" ]]; then
+      die "$dir has uncommitted changes — commit them, or pass --force to discard"
+    fi
+    local unmerged
+    unmerged="$(git -C "$ROOT" rev-list --count "main..$branch" 2>/dev/null || echo 0)"
+    if [[ "$unmerged" != "0" ]]; then
+      die "$branch has $unmerged commit(s) not in main — merge them, or pass --force to discard"
+    fi
+  fi
+
+  info "removing" "slot $slot ($name)"
+  drop_databases "$dir"
+  git -C "$ROOT" worktree remove "$dir" --force
+  git -C "$ROOT" branch -D "$branch" 2>/dev/null || true
+  info "done" "slot $slot is free"
+}
+
+case "${1:-}" in
+  new) shift; cmd_new "$@" ;;
+  list) shift; cmd_list "$@" ;;
+  rm) shift; cmd_rm "$@" ;;
+  *)
+    cat <<'EOF'
+usage: bin/agent-worktree <command>
+
+  new <name> [--slot N]   create an isolated worktree on the next free slot
+  list                    show every slot, its port and whether a server is up
+  rm <name> [--force]     remove the worktree, its branch and its databases
+
+Slot 0 is the main checkout and is never created or removed here.
+EOF
+    exit 1
+    ;;
+esac

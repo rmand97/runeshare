@@ -1,0 +1,30 @@
+# Postgres for RuneShare: the official image on the smallest machine with a
+# 1 GB volume. Private only — no public services, reachable as
+# runeshare-db.internal from the app. See DEPLOY.md.
+app = "runeshare-db"
+primary_region = "ams"
+
+[build]
+  image = "postgres:17-alpine"
+
+[env]
+  POSTGRES_USER = "runeshare"
+  POSTGRES_DB = "runeshare"
+  # A subdirectory, because the volume's root holds lost+found.
+  PGDATA = "/var/lib/postgresql/data/pgdata"
+
+# Tuned for 256 MB: small buffers, few connections (the app pools 5).
+[processes]
+  db = "postgres -c shared_buffers=32MB -c effective_cache_size=96MB -c work_mem=2MB -c maintenance_work_mem=16MB -c max_connections=20"
+
+[[mounts]]
+  source = "pg_data"
+  destination = "/var/lib/postgresql/data"
+  initial_size = "1gb"
+  # Fly snapshots the volume daily; keep two weeks of them.
+  snapshot_retention = 14
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["db"]

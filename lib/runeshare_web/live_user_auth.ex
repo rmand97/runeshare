@@ -1,24 +1,18 @@
 defmodule RuneshareWeb.LiveUserAuth do
   @moduledoc """
-  Helpers for authenticating users in LiveViews.
+  `on_mount` hooks that gate LiveViews on whether a user is signed in.
+
+  Public pages (`:live_user_optional`) also get `@visitor`: who is looking, as a
+  stable key — `"user:<id>"` when signed in, else `"anon:<session visitor id>"`.
   """
 
-  import Phoenix.Component
   use RuneshareWeb, :verified_routes
 
-  # This is used for nested liveviews to fetch the current user.
-  # To use, place the following at the top of that liveview:
-  # on_mount {RuneshareWeb.LiveUserAuth, :current_user}
-  def on_mount(:current_user, _params, session, socket) do
-    {:cont, AshAuthentication.Phoenix.LiveSession.assign_new_resources(socket, session)}
-  end
+  import Phoenix.Component
 
-  def on_mount(:live_user_optional, _params, _session, socket) do
-    if socket.assigns[:current_user] do
-      {:cont, socket}
-    else
-      {:cont, assign(socket, :current_user, nil)}
-    end
+  def on_mount(:live_user_optional, _params, session, socket) do
+    socket = assign_new(socket, :current_user, fn -> nil end)
+    {:cont, assign(socket, :visitor, visitor(socket.assigns.current_user, session))}
   end
 
   def on_mount(:live_user_required, _params, _session, socket) do
@@ -36,4 +30,8 @@ defmodule RuneshareWeb.LiveUserAuth do
       {:cont, assign(socket, :current_user, nil)}
     end
   end
+
+  defp visitor(%{id: id}, _session), do: "user:" <> id
+  defp visitor(nil, %{"visitor_id" => id}), do: "anon:" <> id
+  defp visitor(nil, _session), do: nil
 end

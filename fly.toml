@@ -1,0 +1,39 @@
+# RuneShare on Fly.io — see DEPLOY.md. App names are global on Fly: if
+# "runeshare" is taken, change `app` here and the host names below.
+app = "runeshare"
+primary_region = "ams"
+
+# 512 MB: the release idles around 190 MB of BEAM memory (Ash loads a lot of code).
+# Swap is a safety net for spikes.
+swap_size_mb = 512
+
+[build]
+
+[deploy]
+  # Runs pending migrations on a one-off machine before the new release goes live.
+  release_command = "/app/bin/migrate"
+
+[env]
+  PHX_HOST = "runeshare.fly.dev"
+  PORT = "8080"
+  # Postgres runs in the "runeshare-db" app, reached over Fly's private IPv6 network.
+  ECTO_IPV6 = "true"
+  POOL_SIZE = "5"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Sleep when nobody is connected; wake on the next request (a second or two).
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 1000
+    hard_limit = 1000
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

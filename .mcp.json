@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+        "ash_ai": {
+            "type": "http",
+            "url": "http://localhost:${RUNESHARE_PORT:-4000}/ash_ai/mcp"
+        },
+        "tidewave": {
+            "type": "http",
+            "url": "http://localhost:${RUNESHARE_PORT:-4000}/tidewave/mcp"
+        }
+    }
+}

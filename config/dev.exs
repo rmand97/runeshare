@@ -9,6 +9,7 @@ config :runeshare, Runeshare.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
+  # Slot worktrees override this in config/runtime.exs (runeshare_dev_1, ...).
   database: "runeshare_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -21,6 +22,8 @@ config :runeshare, Runeshare.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :runeshare, RuneshareWeb.Endpoint,
+  # Port is decided in config/runtime.exs from RUNESHARE_SLOT/PORT — see `mix runeshare.slot`.
+  url: [host: "localhost", port: 4000],
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}],
@@ -76,6 +79,3 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
-
-# Disable swoosh api client as it is only required for production adapters.
-config :swoosh, :api_client, false

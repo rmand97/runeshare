@@ -35,3 +35,24 @@ runeshare-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Marker written by bin/agent-worktree into each agent worktree
+.agent-name
+
+# Local env files (.env.example is checked in)
+.env
+.env.*
+!.env.example
+
+# Dialyzer PLTs
+/priv/plts/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+.elixir_ls/
+.expert/
+
+# Dev cover images (AshStorage.Service.Disk).
+/priv/storage/

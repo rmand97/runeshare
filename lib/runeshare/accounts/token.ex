@@ -1,4 +1,8 @@
 defmodule Runeshare.Accounts.Token do
+  @moduledoc """
+  Issued JWTs, so sessions can be revoked on sign-out.
+  """
+
   use Ash.Resource,
     otp_app: :runeshare,
     domain: Runeshare.Accounts,

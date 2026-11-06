@@ -29,6 +29,7 @@ defmodule RuneshareWeb.CoreComponents do
   use Phoenix.Component
   use Gettext, backend: RuneshareWeb.Gettext
 
+  alias Phoenix.HTML.Form
   alias Phoenix.LiveView.JS
 
   @doc """
@@ -63,11 +64,11 @@ defmodule RuneshareWeb.CoreComponents do
       id={@id}
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
-      class="toast toast-top toast-end z-50"
+      class="toast toast-end toast-top z-50"
       {@rest}
     >
       <div class={[
-        "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
+        "alert w-80 max-w-80 text-wrap sm:w-96 sm:max-w-96",
         @kind == :info && "alert-info",
         @kind == :error && "alert-error"
       ]}>
@@ -78,7 +79,7 @@ defmodule RuneshareWeb.CoreComponents do
           <p>{msg}</p>
         </div>
         <div class="flex-1" />
-        <button type="button" class="group self-start cursor-pointer" aria-label={gettext("close")}>
+        <button type="button" class="group cursor-pointer self-start" aria-label={gettext("close")}>
           <.icon name="hero-x-mark" class="size-5 opacity-40 group-hover:opacity-70" />
         </button>
       </div>
@@ -177,6 +178,11 @@ defmodule RuneshareWeb.CoreComponents do
     doc: "a form field struct retrieved from the form, for example: @form[:email]"
 
   attr :errors, :list, default: []
+
+  attr :show_errors, :boolean,
+    default: nil,
+    doc: "show `field`'s errors; defaults to once the field has been typed in (`used_input?/1`)"
+
   attr :checked, :boolean, doc: "the checked flag for checkbox inputs"
   attr :prompt, :string, default: nil, doc: "the prompt for select inputs"
   attr :options, :list, doc: "the options to pass to Phoenix.HTML.Form.options_for_select/2"
@@ -189,7 +195,9 @@ defmodule RuneshareWeb.CoreComponents do
                 multiple pattern placeholder readonly required rows size step)
 
   def input(%{field: %Phoenix.HTML.FormField{} = field} = assigns) do
-    errors = if Phoenix.Component.used_input?(field), do: field.errors, else: []
+    show? = if is_nil(assigns.show_errors), do: used_input?(field), else: assigns.show_errors
+
+    errors = if show?, do: field.errors, else: []
 
     assigns
     |> assign(field: nil, id: assigns.id || field.id)
@@ -208,11 +216,11 @@ defmodule RuneshareWeb.CoreComponents do
   def input(%{type: "checkbox"} = assigns) do
     assigns =
       assign_new(assigns, :checked, fn ->
-        Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value])
+        Form.normalize_value("checkbox", assigns[:value])
       end)
 
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="mb-2 fieldset">
       <label for={@id}>
         <input
           type="hidden"
@@ -240,13 +248,13 @@ defmodule RuneshareWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="mb-2 fieldset">
       <label for={@id}>
         <span :if={@label} class="label mb-1">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[@class || "select w-full", @errors != [] && (@error_class || "select-error")]}
           multiple={@multiple}
           {@rest}
         >
@@ -261,18 +269,18 @@ defmodule RuneshareWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="mb-2 fieldset">
       <label for={@id}>
         <span :if={@label} class="label mb-1">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
+            @class || "textarea w-full",
             @errors != [] && (@error_class || "textarea-error")
           ]}
           {@rest}
-        >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+        >{Form.normalize_value("textarea", @value)}</textarea>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -282,16 +290,16 @@ defmodule RuneshareWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="mb-2 fieldset">
       <label for={@id}>
         <span :if={@label} class="label mb-1">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
-          value={Phoenix.HTML.Form.normalize_value(@type, @value)}
+          value={Form.normalize_value(@type, @value)}
           class={[
-            @class || "w-full input",
+            @class || "input w-full",
             @errors != [] && (@error_class || "input-error")
           ]}
           {@rest}
@@ -303,9 +311,11 @@ defmodule RuneshareWeb.CoreComponents do
   end
 
   # Helper used by inputs to generate form errors
+  slot :inner_block, required: true
+
   defp error(assigns) do
     ~H"""
-    <p class="mt-1.5 flex gap-2 items-center text-sm text-error">
+    <p class="mt-1.5 flex items-center gap-2 text-sm text-error">
       <.icon name="hero-exclamation-circle" class="size-5" />
       {render_slot(@inner_block)}
     </p>
@@ -323,7 +333,7 @@ defmodule RuneshareWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8">
+        <h1 class="text-lg/8 font-semibold">
           {render_slot(@inner_block)}
         </h1>
         <p :if={@subtitle != []} class="text-sm text-base-content/70">
@@ -362,8 +372,12 @@ defmodule RuneshareWeb.CoreComponents do
 
   def table(assigns) do
     assigns =
-      with %{rows: %Phoenix.LiveView.LiveStream{}} <- assigns do
-        assign(assigns, row_id: assigns.row_id || fn {id, _item} -> id end)
+      case assigns do
+        %{rows: %Phoenix.LiveView.LiveStream{}} ->
+          assign(assigns, row_id: assigns.row_id || fn {id, _item} -> id end)
+
+        _plain_list ->
+          assigns
       end
 
     ~H"""

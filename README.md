@@ -1,18 +1,32 @@
-# Runeshare
+# RuneShare
 
-To start your Phoenix server:
+Share RuneScape 3 plugin setups: **Watchdog alarm strings** and **tile marker presets**.
+Sign in with Google, paste an import string, and others can copy it straight into their plugin.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Phoenix 1.8 · LiveView 1.2 · Ash 3 (AshPostgres, AshAuthentication, AshAdmin, AshAI) · Tailwind 4 + DaisyUI 5.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Getting started
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+Tooling versions are pinned in `mise.toml` (`mise install`).
 
-## Learn more
+```sh
+docker compose up -d          # Postgres on localhost:5432
+cp .env.example .env          # then fill in GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+mix setup                     # deps, database, assets, Playwright, seeds
+mix phx.server                # http://localhost:4000 (see `mix runeshare.slot`)
+```
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+### Google OAuth
+
+Create an OAuth client at <https://console.cloud.google.com/apis/credentials>
+(type "Web application") with authorized redirect URI
+`http://localhost:4000/auth/user/google/callback`. Put the client id and secret in `.env`.
+
+## Development
+
+- `mix precommit` — compile (warnings as errors), unused deps, format, skills drift, `credo --strict`, tests.
+- `mix runeshare.slot` — ports/databases this checkout owns.
+- `bin/agent-worktree new <name>` — isolated worktree for a parallel agent.
+- `/admin` (dev only) — AshAdmin. `/dev/dashboard` — LiveDashboard.
+
+Agent rules live in `CLAUDE.md` and `.claude/skills/`.

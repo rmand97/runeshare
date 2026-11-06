@@ -7,6 +7,84 @@ import Config
 # any compile-time configuration in here, as it won't be applied.
 # The block below contains prod specific runtime configuration.
 
+# Load .env in dev/test. In prod, env vars come from the host.
+#
+# Dotenvy's default side effect stashes the parsed values in the process
+# dictionary, where `System.get_env/1` cannot see them — so the merged map is
+# written into the real environment here. Real env vars are listed last and
+# therefore win over the file.
+if config_env() in [:dev, :test] do
+  import Dotenvy
+
+  [".env", ".env.#{config_env()}", System.get_env()]
+  |> source!()
+  |> System.put_env()
+end
+
+# ## Development slots
+#
+# Several agents work this repo at once from sibling git worktrees (see
+# `bin/agent-worktree` and the `parallel-agents` skill). Each checkout owns a
+# slot 0..9 from `RUNESHARE_SLOT`, and every port and database name derives
+# from it. Slot 0 is the main checkout: port 4000, `runeshare_dev`, `runeshare_test`.
+#
+# `Runeshare.Slot` holds the same arithmetic for humans and mix tasks. It cannot
+# be called here — config is evaluated before `lib/` is compiled — so the
+# numbers are inlined. `test/runeshare/slot_test.exs` pins them; keep in step.
+if config_env() in [:dev, :test] do
+  slot = String.to_integer(System.get_env("RUNESHARE_SLOT", "0"))
+  partition = String.to_integer(System.get_env("MIX_TEST_PARTITION", "0"))
+  suffix = if slot == 0, do: "", else: "_#{slot}"
+
+  config :runeshare, Runeshare.Repo,
+    database: "runeshare_#{config_env()}#{if partition == 0, do: "", else: partition}#{suffix}"
+
+  if config_env() == :test do
+    config :runeshare, RuneshareWeb.Endpoint, http: [port: 4040 + slot + 10 * partition]
+  else
+    # Mix has already consumed System.argv/0 by the time config is evaluated, so
+    # the raw VM arguments are what still carry the task name.
+    serving? =
+      Enum.any?(:init.get_plain_arguments(), &(List.to_string(&1) == "phx.server")) or
+        System.get_env("PHX_SERVER") != nil
+
+    # Explicit PORT wins. Otherwise a slot gives a deterministic port, which is
+    # what the tidewave/ash_ai MCP URLs in .mcp.json are wired to. With neither
+    # set we probe, but only when actually starting a server.
+    port =
+      cond do
+        env_port = System.get_env("PORT") ->
+          String.to_integer(env_port)
+
+        slot > 0 ->
+          4000 + slot
+
+        serving? ->
+          Enum.find(4000..4099, 4000, fn candidate ->
+            case :gen_tcp.listen(candidate, [:binary, active: false, reuseaddr: true]) do
+              {:ok, socket} ->
+                :gen_tcp.close(socket)
+                true
+
+              {:error, _reason} ->
+                false
+            end
+          end)
+
+        true ->
+          4000
+      end
+
+    config :runeshare, RuneshareWeb.Endpoint,
+      http: [port: port],
+      url: [host: "localhost", port: port]
+
+    # Derived from the port actually chosen, not from the slot: on the probe path
+    # the two diverge, and a LiveDebugger port clash takes the whole server down.
+    config :live_debugger, port: port + 20
+  end
+end
+
 # ## Using releases
 #
 # If you use `mix release`, you need to explicitly enable the server
@@ -20,8 +98,48 @@ if System.get_env("PHX_SERVER") do
   config :runeshare, RuneshareWeb.Endpoint, server: true
 end
 
-config :runeshare, RuneshareWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+# Dev and test ports are decided by the slot block above.
+if config_env() == :prod do
+  config :runeshare, RuneshareWeb.Endpoint,
+    http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+
+  # Cover images live in a public Tigris bucket. `fly storage create --public` sets
+  # BUCKET_NAME, AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
+  # Credentials are read from the environment by name and never stored on blobs.
+  bucket = System.get_env("BUCKET_NAME") || raise "environment variable BUCKET_NAME is missing"
+
+  config :runeshare, Runeshare.Sharing.Preset,
+    storage: [
+      service:
+        {AshStorage.Service.S3,
+         bucket: bucket,
+         region: "auto",
+         endpoint_url: System.get_env("AWS_ENDPOINT_URL_S3", "https://t3.storage.dev"),
+         prefix: "covers/",
+         public_base_url:
+           System.get_env("STORAGE_PUBLIC_URL", "https://#{bucket}.t3.tigrisfiles.io")}
+    ]
+end
+
+# Comma-separated Google account emails that get the admin (moderator) role on sign-in.
+if config_env() in [:dev, :prod] do
+  config :runeshare,
+         :admin_emails,
+         "ADMIN_EMAILS"
+         |> System.get_env("")
+         |> String.split(",", trim: true)
+         |> Enum.map(&(&1 |> String.trim() |> String.downcase()))
+end
+
+# Google OAuth (sign-in). Test env uses fixed fake values from config/test.exs.
+# Create credentials at https://console.cloud.google.com/apis/credentials with
+# redirect URI `<base url>/auth/user/google/callback`.
+if config_env() in [:dev, :prod] do
+  config :runeshare, :google_oauth,
+    client_id: System.get_env("GOOGLE_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
+    redirect_uri: System.get_env("GOOGLE_REDIRECT_URI")
+end
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
@@ -131,22 +249,4 @@ if config_env() == :prod do
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.
-
-  # ## Configuring the mailer
-  #
-  # In production you need to configure the mailer to use a different adapter.
-  # Here is an example configuration for Mailgun:
-  #
-  #     config :runeshare, Runeshare.Mailer,
-  #       adapter: Swoosh.Adapters.Mailgun,
-  #       api_key: System.get_env("MAILGUN_API_KEY"),
-  #       domain: System.get_env("MAILGUN_DOMAIN")
-  #
-  # Most non-SMTP adapters require an API client. Swoosh supports Req, Hackney,
-  # and Finch out-of-the-box. This configuration is typically done at
-  # compile-time in your config/prod.exs:
-  #
-  #     config :swoosh, :api_client, Swoosh.ApiClient.Req
-  #
-  # See https://swoosh.hexdocs.pm/Swoosh.html#module-installation for details.
 end

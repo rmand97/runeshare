@@ -63,7 +63,7 @@ config :spark,
 config :runeshare,
   ecto_repos: [Runeshare.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Runeshare.Accounts],
+  ash_domains: [Runeshare.Accounts, Runeshare.Sharing],
   ash_authentication: [return_error_on_invalid_magic_link_token?: true]
 
 # Configure the endpoint
@@ -82,18 +82,9 @@ config :phoenix_live_view,
   # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.
   root_tag_attribute: "phx-r"
 
-# Configure the mailer
-#
-# By default it uses the "Local" adapter which stores the emails
-# locally. You can see the emails in your browser, at "/dev/mailbox".
-#
-# For production it's recommended to configure a different adapter
-# at the `config/runtime.exs`.
-config :runeshare, Runeshare.Mailer, adapter: Swoosh.Adapters.Local
-
 # Configure esbuild (the version is required)
 config :esbuild,
-  version: "0.25.4",
+  version: "0.28.2",
   runeshare: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
@@ -103,7 +94,7 @@ config :esbuild,
 
 # Configure tailwind (the version is required)
 config :tailwind,
-  version: "4.3.3",
+  version: "4.3.4",
   runeshare: [
     args: ~w(
       --input=assets/css/app.css

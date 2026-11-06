@@ -1,9 +1,10 @@
 defmodule RuneshareWeb.Layouts do
   @moduledoc """
-  This module holds layouts and related functionality
-  used by your application.
+  Root and app layouts, flash group and theme toggle.
   """
   use RuneshareWeb, :html
+
+  alias RuneshareWeb.PresetComponents
 
   # Embed all files in layouts/* within this module.
   # The default root.html.heex file contains the HTML
@@ -12,61 +13,110 @@ defmodule RuneshareWeb.Layouts do
   embed_templates "layouts/*"
 
   @doc """
-  Renders your app layout.
+  Page shell: top navigation, main content, footer and flash messages.
 
-  This function is typically invoked from every template,
-  and it often contains your application menu, sidebar,
-  or similar.
-
-  ## Examples
-
-      <Layouts.app flash={@flash}>
+      <Layouts.app flash={@flash} current_user={@current_user} active={:watchdog_alarm}>
         <h1>Content</h1>
       </Layouts.app>
-
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
-
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current [scope](https://phoenix.hexdocs.pm/scopes.html)"
+  attr :current_user, :any, default: nil, doc: "the signed-in user, if any"
+  attr :active, :atom, default: nil, doc: "preset kind whose nav tab is highlighted"
+  attr :width, :string, default: "max-w-6xl", doc: "max-width class of the main column"
 
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
+    <header class="navbar min-h-12 gap-2 border-b border-base-content/10 bg-base-200 px-2 py-0 sm:px-4">
+      <div class="navbar-start w-auto flex-1 gap-1">
+        <details class="dropdown sm:hidden">
+          <summary class="btn btn-square btn-ghost btn-sm" aria-label="Menu">
+            <.icon name="hero-bars-3" class="size-5" />
+          </summary>
+          <ul class="menu dropdown-content z-10 mt-2 w-48 rounded-box border border-base-content/10 bg-base-100 p-1">
+            <li :for={kind <- Runeshare.Sharing.Preset.kinds()}>
+              <.link navigate={PresetComponents.kind_path(kind)}>
+                <.icon name={PresetComponents.kind_icon(kind)} class="size-4" />
+                {PresetComponents.kind_short(kind)}
+              </.link>
+            </li>
+          </ul>
+        </details>
+        <.link
+          navigate={~p"/"}
+          class="flex items-center gap-1.5 font-display text-sm font-bold tracking-[0.12em] uppercase"
+        >
+          <.icon name="hero-sparkles" class="size-5 text-primary" />
+          <span>Rune<span class="text-primary">Share</span></span>
+        </.link>
+        <nav class="ml-4 hidden h-12 self-stretch font-display text-xs tracking-wider uppercase sm:flex">
+          <.link
+            :for={kind <- Runeshare.Sharing.Preset.kinds()}
+            navigate={PresetComponents.kind_path(kind)}
+            class={[
+              "flex items-center border-b-2 px-3",
+              if(@active == kind,
+                do: "border-primary text-primary",
+                else: "border-transparent sm:hover:text-primary"
+              )
+            ]}
+          >
+            {PresetComponents.kind_short(kind)}
+          </.link>
+        </nav>
       </div>
-      <div class="flex-none">
-        <ul class="flex px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://phoenix.hexdocs.pm/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
-            </a>
-          </li>
-        </ul>
+      <div class="navbar-end w-auto gap-1">
+        <.theme_toggle />
+        <%= if @current_user do %>
+          <.link
+            :if={@current_user.role == :admin}
+            navigate={~p"/moderation"}
+            class="btn hidden btn-ghost font-display text-xs tracking-wider uppercase btn-sm md:inline-flex"
+          >
+            Moderation
+          </.link>
+          <.link
+            navigate={~p"/account"}
+            class="btn hidden btn-ghost font-display text-xs tracking-wider uppercase btn-sm md:inline-flex"
+          >
+            My account
+          </.link>
+          <details class="dropdown dropdown-end">
+            <summary class="btn gap-2 btn-ghost px-1 btn-sm" aria-label="Account menu">
+              <PresetComponents.avatar user={@current_user} />
+              <span class="hidden text-xs sm:inline">{@current_user.name}</span>
+            </summary>
+            <ul class="menu dropdown-content z-10 mt-2 w-44 rounded-box border border-base-content/10 bg-base-100 p-1">
+              <li>
+                <.link navigate={~p"/account"}><.icon name="hero-user-circle" class="size-4" />
+                My account</.link>
+              </li>
+              <li :if={@current_user.role == :admin}>
+                <.link navigate={~p"/moderation"}>
+                  <.icon name="hero-flag" class="size-4" /> Moderation
+                </.link>
+              </li>
+              <li>
+                <.link href={~p"/sign-out"}>
+                  <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
+                </.link>
+              </li>
+            </ul>
+          </details>
+        <% else %>
+          <.link navigate={~p"/sign-in"} class="btn btn-primary btn-sm">Sign in</.link>
+        <% end %>
       </div>
     </header>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
+    <main class={["mx-auto space-y-4 px-3 py-4 sm:px-4 sm:py-6", @width]}>
+      {render_slot(@inner_block)}
     </main>
+
+    <footer class="mx-auto max-w-6xl px-4 pt-2 pb-6 text-[11px] text-base-content/60">
+      RuneShare · community-made, not affiliated with Jagex.
+    </footer>
 
     <.flash_group flash={@flash} />
     """
@@ -122,39 +172,29 @@ defmodule RuneshareWeb.Layouts do
   end
 
   @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
+  Light/dark toggle. Shows the button that switches to the other theme;
+  see <head> in root.html.heex for how the theme is applied.
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 [[data-theme-source=system]_&]:!left-0 transition-[left]" />
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="light"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        class="flex p-2 cursor-pointer w-1/3"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="dark"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-    </div>
+    <button
+      type="button"
+      class="btn btn-square btn-ghost btn-sm in-data-[theme=light]:hidden"
+      phx-click={JS.dispatch("phx:set-theme")}
+      data-phx-theme="light"
+      aria-label="Switch to light theme"
+    >
+      <.icon name="hero-sun" class="size-5" />
+    </button>
+    <button
+      type="button"
+      class="btn btn-square btn-ghost btn-sm in-data-[theme=dark]:hidden"
+      phx-click={JS.dispatch("phx:set-theme")}
+      data-phx-theme="dark"
+      aria-label="Switch to dark theme"
+    >
+      <.icon name="hero-moon" class="size-5" />
+    </button>
     """
   end
 end

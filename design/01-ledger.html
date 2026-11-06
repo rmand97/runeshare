@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RuneShare Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<!-- =====================================================================
+     DAISYUI THEME: "Ledger"
+     Port to assets/css/app.css: replace the two existing
+     `@plugin "daisyui/packages/bundle/daisyui-theme"` blocks with the ones in the
+     comment below (names stay "light"/"dark", so the Phoenix theme toggle keeps
+     working) and add the @theme font block. CLAUDE.md forbids external CSS hrefs,
+     so self-host these fonts (woff2 in priv/static/fonts + @font-face in app.css);
+     the mock loads them from:
+       https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;700&family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap
+     The live [data-theme] rules underneath are the same values, for the CDN mock.
+     ===================================================================== -->
+<style id="daisyui-theme">
+/* ---------- app.css version ----------
+@plugin "daisyui/packages/bundle/daisyui-theme" {
+  name: "light";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+  --color-base-100: oklch(99% 0.002 85);
+  --color-base-200: oklch(94.6% 0.004 30);
+  --color-base-300: oklch(89% 0.005 85);
+  --color-base-content: oklch(23% 0.003 85);
+  --color-primary: oklch(66% 0.13 85);
+  --color-primary-content: oklch(18% 0.03 85);
+  --color-secondary: oklch(52% 0.19 285);
+  --color-secondary-content: oklch(98% 0.01 285);
+  --color-accent: oklch(56% 0.12 160);
+  --color-accent-content: oklch(98% 0.01 160);
+  --color-neutral: oklch(30% 0.004 85);
+  --color-neutral-content: oklch(94% 0 0);
+  --color-info: oklch(58% 0.14 240);
+  --color-info-content: oklch(98% 0.01 240);
+  --color-success: oklch(58% 0.14 150);
+  --color-success-content: oklch(98% 0.01 150);
+  --color-warning: oklch(70% 0.16 70);
+  --color-warning-content: oklch(20% 0.04 70);
+  --color-error: oklch(57% 0.21 25);
+  --color-error-content: oklch(98% 0.01 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/packages/bundle/daisyui-theme" {
+  name: "dark";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(24.3% 0.002 85);
+  --color-base-200: oklch(20.9% 0.002 85);
+  --color-base-300: oklch(17.5% 0.002 85);
+  --color-base-content: oklch(94.6% 0.004 30);
+  --color-primary: oklch(77.5% 0.135 88);
+  --color-primary-content: oklch(22% 0.03 88);
+  --color-secondary: oklch(62% 0.17 285);
+  --color-secondary-content: oklch(98% 0.01 285);
+  --color-accent: oklch(72% 0.13 160);
+  --color-accent-content: oklch(20% 0.03 160);
+  --color-neutral: oklch(35.2% 0.004 85);
+  --color-neutral-content: oklch(90% 0 0);
+  --color-info: oklch(70% 0.12 235);
+  --color-info-content: oklch(20% 0.03 235);
+  --color-success: oklch(72% 0.15 150);
+  --color-success-content: oklch(20% 0.04 150);
+  --color-warning: oklch(80% 0.15 75);
+  --color-warning-content: oklch(22% 0.04 75);
+  --color-error: oklch(64% 0.2 25);
+  --color-error-content: oklch(97% 0.01 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  --font-display: "Roboto Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+}
+---------- end app.css version ---------- */
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-base-100: oklch(99% 0.002 85);
+  --color-base-200: oklch(94.6% 0.004 30);
+  --color-base-300: oklch(89% 0.005 85);
+  --color-base-content: oklch(23% 0.003 85);
+  --color-primary: oklch(66% 0.13 85);
+  --color-primary-content: oklch(18% 0.03 85);
+  --color-secondary: oklch(52% 0.19 285);
+  --color-secondary-content: oklch(98% 0.01 285);
+  --color-accent: oklch(56% 0.12 160);
+  --color-accent-content: oklch(98% 0.01 160);
+  --color-neutral: oklch(30% 0.004 85);
+  --color-neutral-content: oklch(94% 0 0);
+  --color-info: oklch(58% 0.14 240);
+  --color-info-content: oklch(98% 0.01 240);
+  --color-success: oklch(58% 0.14 150);
+  --color-success-content: oklch(98% 0.01 150);
+  --color-warning: oklch(70% 0.16 70);
+  --color-warning-content: oklch(20% 0.04 70);
+  --color-error: oklch(57% 0.21 25);
+  --color-error-content: oklch(98% 0.01 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-base-100: oklch(24.3% 0.002 85);
+  --color-base-200: oklch(20.9% 0.002 85);
+  --color-base-300: oklch(17.5% 0.002 85);
+  --color-base-content: oklch(94.6% 0.004 30);
+  --color-primary: oklch(77.5% 0.135 88);
+  --color-primary-content: oklch(22% 0.03 88);
+  --color-secondary: oklch(62% 0.17 285);
+  --color-secondary-content: oklch(98% 0.01 285);
+  --color-accent: oklch(72% 0.13 160);
+  --color-accent-content: oklch(20% 0.03 160);
+  --color-neutral: oklch(35.2% 0.004 85);
+  --color-neutral-content: oklch(90% 0 0);
+  --color-info: oklch(70% 0.12 235);
+  --color-info-content: oklch(20% 0.03 235);
+  --color-success: oklch(72% 0.15 150);
+  --color-success-content: oklch(20% 0.04 150);
+  --color-warning: oklch(80% 0.15 75);
+  --color-warning-content: oklch(22% 0.04 75);
+  --color-error: oklch(64% 0.2 25);
+  --color-error-content: oklch(97% 0.01 25);
+  --radius-selector: 0.125rem;
+  --radius-field: 0.125rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.21875rem;
+  --size-field: 0.21875rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+</style>
+<style type="text/tailwindcss">
+/* mock-only: register daisyUI colour names with the Tailwind browser CDN so utilities like
+   divide-base-content/10 exist. The real daisyUI plugin does this for you; values come from
+   the [data-theme] rules above (unlayered, so they win over @layer theme). */
+@theme {
+  --color-base-100: currentColor;
+  --color-base-200: currentColor;
+  --color-base-300: currentColor;
+  --color-base-content: currentColor;
+  --color-primary: currentColor;
+  --color-primary-content: currentColor;
+  --color-secondary: currentColor;
+  --color-secondary-content: currentColor;
+  --color-accent: currentColor;
+  --color-accent-content: currentColor;
+  --color-neutral: currentColor;
+  --color-neutral-content: currentColor;
+  --color-info: currentColor;
+  --color-info-content: currentColor;
+  --color-success: currentColor;
+  --color-success-content: currentColor;
+  --color-warning: currentColor;
+  --color-warning-content: currentColor;
+  --color-error: currentColor;
+  --color-error-content: currentColor;
+}
+@theme {
+  --font-display: "Roboto Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+}
+</style>
+<!-- ===================== END DAISYUI THEME ===================== -->
+<style>
+  html { scroll-behavior: smooth; }
+  [data-theme="light"] .only-dark, [data-theme="dark"] .only-light { display: none; }
+  .ic-check { display: none; } .is-copied .ic-check { display: inline-block; } .is-copied .ic-copy { display: none; }
+</style>
+</head>
+<body class="min-h-screen bg-base-300 text-base-content font-sans antialiased">
+<!-- mockup chrome (not part of the design) -->
+<div class="sticky top-0 z-50 border-b border-black/20 bg-[#111] text-[#eee] font-[system-ui] text-xs">
+  <div class="mx-auto flex max-w-6xl items-center gap-2 px-3 py-1.5 overflow-x-auto">
+    <a href="index.html" class="shrink-0 opacity-70 hover:opacity-100">&larr; All</a>
+    <span class="shrink-0 font-semibold">Ledger</span>
+    <nav class="tabs tabs-xs ml-auto flex-nowrap shrink-0 [&>.tab]:text-[#bbb] [&>.tab-active]:!text-white [&>.tab-active]:bg-white/15 [&>.tab]:rounded">
+      <a class="tab" data-tab="home" href="#home">Home</a>
+      <a class="tab" data-tab="listing" href="#listing">Listing</a>
+      <a class="tab" data-tab="detail" href="#detail">Detail</a>
+      <a class="tab" data-tab="share" href="#share">Share</a>
+    </nav>
+  </div>
+</div>
+
+<!-- ============================ PAGE 1: HOME ============================ -->
+<section id="home" class="scroll-mt-9">
+  <div class="bg-[#111] text-[#999] font-[system-ui] text-[11px] px-3 py-1 border-t border-white/10">Page 1 · / · signed out</div>
+  <div data-nav="out:"></div>
+  <main class="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:px-4 sm:py-6">
+    <div class="rounded-box border border-base-content/10 bg-base-100">
+      <div class="grid gap-4 p-4 sm:p-5 md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <p class="font-display text-[11px] uppercase tracking-[0.2em] text-primary">RS3 plugin config exchange</p>
+          <h1 class="mt-1 font-display text-2xl font-bold uppercase tracking-wide sm:text-3xl">Alarms &amp; tile markers, ready to paste.</h1>
+          <p class="mt-2 max-w-xl text-sm text-base-content/70">Share your Watchdog alarm strings and Tile marker presets. Find a set for your boss, hit copy, import it in the plugin.</p>
+        </div>
+        <div class="flex gap-2">
+          <a class="btn btn-primary btn-sm flex-1 md:flex-none"><i data-i="plus"></i>Share one</a>
+          <a class="btn btn-outline btn-sm flex-1 md:flex-none">Browse all</a>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 divide-x divide-base-content/10 border-t border-base-content/10 text-center">
+        <div class="py-2"><div class="font-mono text-sm text-primary sm:text-base">1,284</div><div class="text-[10px] uppercase tracking-wider text-base-content/50">presets</div></div>
+        <div class="py-2"><div class="font-mono text-sm text-primary sm:text-base">312</div><div class="text-[10px] uppercase tracking-wider text-base-content/50">contributors</div></div>
+        <div class="py-2"><div class="font-mono text-sm text-primary sm:text-base">1h ago</div><div class="text-[10px] uppercase tracking-wider text-base-content/50">last share</div></div>
+      </div>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      <div data-panel="watchdog"></div>
+      <div data-panel="tiles"></div>
+    </div>
+  </main>
+  <div data-footer></div>
+</section>
+
+<!-- ============================ PAGE 2: LISTING ============================ -->
+<section id="listing" class="scroll-mt-9">
+  <div class="bg-[#111] text-[#999] font-[system-ui] text-[11px] px-3 py-1 border-t border-white/10">Page 2 · /watchdog?q=rotation&amp;page=2 · signed in</div>
+  <div data-nav="in:watchdog"></div>
+  <main class="mx-auto max-w-6xl space-y-3 px-3 py-4 sm:px-4 sm:py-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <div class="text-xs text-base-content/50"><a class="hover:text-primary">Home</a> / Watchdog</div>
+        <h1 class="font-display text-xl font-bold uppercase tracking-wide sm:text-2xl">Watchdog alarms <span class="align-middle font-mono text-sm font-normal text-base-content/40">214</span></h1>
+      </div>
+      <a class="btn btn-primary btn-sm"><i data-i="plus"></i>Share alarm</a>
+    </div>
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <label class="input input-sm w-full sm:max-w-sm">
+        <i data-i="search" data-c="size-4 opacity-50"></i>
+        <input type="search" class="grow" placeholder="Search title or author" value="rotation">
+      </label>
+      <div class="join">
+        <a class="btn btn-sm join-item btn-primary">Watchdog</a>
+        <a class="btn btn-sm join-item">Tile markers</a>
+      </div>
+    </div>
+    <div class="overflow-hidden rounded-box border border-base-content/10 bg-base-100">
+      <table class="table table-sm">
+        <thead class="bg-base-200 font-display text-[11px] uppercase tracking-wider text-base-content/60">
+          <tr><th>Title</th><th class="hidden md:table-cell">Author</th><th class="hidden sm:table-cell">Added</th><th class="hidden lg:table-cell">String</th><th class="w-0 text-right">Copy</th></tr>
+        </thead>
+        <tbody data-rows="watchdog"></tbody>
+      </table>
+    </div>
+    <div class="flex items-center justify-between gap-2 text-xs">
+      <span class="hidden text-base-content/50 sm:inline">Showing 9–16 of 214</span>
+      <div class="join mx-auto sm:mx-0">
+        <a class="btn btn-sm join-item"><i data-i="left"></i>Prev</a>
+        <span class="btn btn-sm join-item pointer-events-none font-mono">2 / 27</span>
+        <a class="btn btn-sm join-item">Next<i data-i="right"></i></a>
+      </div>
+    </div>
+  </main>
+  <div data-footer></div>
+</section>
+
+<!-- ============================ PAGE 3: DETAIL ============================ -->
+<section id="detail" class="scroll-mt-9">
+  <div class="bg-[#111] text-[#999] font-[system-ui] text-[11px] px-3 py-1 border-t border-white/10">Page 3 · /presets/1042 · signed in as owner</div>
+  <div data-nav="in:watchdog"></div>
+  <main class="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:px-4 sm:py-6">
+    <div class="text-xs text-base-content/50"><a class="hover:text-primary">Home</a> / <a class="hover:text-primary">Watchdog</a> / #1042</div>
+    <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+      <div class="min-w-0">
+        <span class="badge badge-primary badge-sm rounded-sm font-display uppercase tracking-wider"><i data-i="bell" data-c="size-3"></i>Watchdog</span>
+        <h1 class="mt-1 font-display text-2xl font-bold uppercase tracking-wide sm:text-3xl" data-detail="title"></h1>
+        <div class="mt-1 flex items-center gap-2 text-sm text-base-content/60"><span data-detail="avatar"></span><span data-detail="author"></span><span>·</span><time data-detail="date"></time></div>
+      </div>
+      <div class="flex gap-2">
+        <a class="btn btn-outline btn-sm flex-1 sm:flex-none"><i data-i="edit"></i>Edit</a>
+        <button class="btn btn-outline btn-error btn-sm flex-1 sm:flex-none"><i data-i="trash"></i>Delete</button>
+      </div>
+    </div>
+    <div class="grid gap-4 lg:grid-cols-[1fr_17rem]">
+      <div class="space-y-4">
+        <div class="overflow-hidden rounded-box border border-base-content/10 bg-base-100">
+          <div class="flex items-center gap-2 border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2">
+            <h2 class="font-display text-sm font-bold uppercase tracking-wider">Import string</h2>
+            <span class="font-mono text-xs text-base-content/40">1,842 chars</span>
+            <button class="btn btn-primary btn-sm ml-auto hidden sm:inline-flex" data-copy="#str-ledger"><span data-copyicons></span><span class="copy-label">Copy string</span></button>
+          </div>
+          <pre id="str-ledger" class="max-h-56 overflow-auto whitespace-pre-wrap break-all bg-base-300/40 p-3 font-mono text-xs leading-relaxed text-base-content/80" data-detail="full"></pre>
+          <div class="border-t border-base-content/10 p-2 sm:hidden">
+            <button class="btn btn-primary btn-block" data-copy="#str-ledger"><span data-copyicons></span><span class="copy-label">Copy string</span></button>
+          </div>
+        </div>
+        <div class="rounded-box border border-base-content/10 bg-base-100">
+          <div class="border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2"><h2 class="font-display text-sm font-bold uppercase tracking-wider">Description</h2></div>
+          <p class="p-3 text-sm leading-relaxed text-base-content/80" data-detail="desc"></p>
+        </div>
+      </div>
+      <aside class="space-y-4">
+        <div class="rounded-box border border-base-content/10 bg-base-100">
+          <div class="border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2"><h2 class="font-display text-sm font-bold uppercase tracking-wider">Details</h2></div>
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 p-3 text-sm">
+            <dt class="text-base-content/50">Kind</dt><dd>Watchdog alarm</dd>
+            <dt class="text-base-content/50">Author</dt><dd data-detail="author"></dd>
+            <dt class="text-base-content/50">Shared</dt><dd>6 Nov 2026</dd>
+            <dt class="text-base-content/50">Updated</dt><dd>2h ago</dd>
+            <dt class="text-base-content/50">ID</dt><dd class="font-mono">#1042</dd>
+          </dl>
+        </div>
+        <div class="rounded-box border border-base-content/10 bg-base-100">
+          <div class="border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2"><h2 class="font-display text-sm font-bold uppercase tracking-wider">How to import</h2></div>
+          <ol class="list-inside list-decimal space-y-1 p-3 text-sm text-base-content/80">
+            <li>Copy the string above.</li>
+            <li>Open the Watchdog plugin settings.</li>
+            <li>Choose <span class="font-semibold text-primary">Import</span> and paste.</li>
+          </ol>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <div data-footer></div>
+</section>
+
+<!-- ============================ PAGE 4: SHARE FORM ============================ -->
+<section id="share" class="scroll-mt-9">
+  <div class="bg-[#111] text-[#999] font-[system-ui] text-[11px] px-3 py-1 border-t border-white/10">Page 4 · /presets/new · signed in</div>
+  <div data-nav="in:"></div>
+  <main class="mx-auto max-w-3xl space-y-3 px-3 py-4 sm:px-4 sm:py-6">
+    <div>
+      <div class="text-xs text-base-content/50"><a class="hover:text-primary">Home</a> / Share</div>
+      <h1 class="font-display text-xl font-bold uppercase tracking-wide sm:text-2xl">Share a preset</h1>
+    </div>
+    <form class="overflow-hidden rounded-box border border-base-content/10 bg-base-100" onsubmit="return false">
+      <div class="border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2"><h2 class="font-display text-sm font-bold uppercase tracking-wider">New preset</h2></div>
+      <div class="p-3 sm:p-4">
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Kind</legend>
+          <div class="join w-full sm:w-auto">
+            <input class="join-item btn btn-sm flex-1 checked:btn-primary" type="radio" name="kind-l" aria-label="Watchdog alarm" checked>
+            <input class="join-item btn btn-sm flex-1 checked:btn-primary" type="radio" name="kind-l" aria-label="Tile markers">
+          </div>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Title</legend>
+          <input class="input w-full" maxlength="80" placeholder="e.g. Vorago rotation timer">
+          <p class="label">Shown in lists. Up to 80 characters.</p>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Description <span class="font-normal text-base-content/50">optional</span></legend>
+          <textarea class="textarea h-24 w-full" placeholder="Which boss, which phases, anything people should tweak."></textarea>
+        </fieldset>
+        <fieldset class="fieldset">
+          <legend class="fieldset-legend">Import string</legend>
+          <textarea class="textarea textarea-error h-40 w-full break-all font-mono text-xs leading-relaxed" placeholder="Paste the string exported from the plugin" data-detail="short"></textarea>
+          <p class="label text-error">This doesn't look like a Watchdog string. Check you copied the whole thing.</p>
+        </fieldset>
+      </div>
+      <div class="flex flex-col-reverse gap-2 border-t border-base-content/10 bg-base-200 px-3 py-2 sm:flex-row sm:justify-end">
+        <a class="btn btn-ghost btn-sm">Cancel</a>
+        <button class="btn btn-primary btn-sm">Save preset</button>
+      </div>
+    </form>
+  </main>
+  <div data-footer></div>
+</section>
+
+<script>
+// ---- shared mock helpers (icons, fake data, copy, theme toggle) ----
+const ICONS = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+  bell: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  rune: '<path d="M12 2.5 20.5 12 12 21.5 3.5 12Z"/><path d="M12 7v10M8.8 10.2 12 13l3.2-2.8"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+};
+const icon = (n, c = 'size-4') =>
+  `<svg class="${c}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+
+function importString(seed, len) {
+  const a = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let x = (seed * 2654435761) >>> 0 || 1, s = '';
+  for (let i = 0; i < len; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0; s += a[x % 64]; }
+  return s + '==';
+}
+
+const WATCHDOG = [
+  { title: 'Vorago rotation timer', author: 'Ironvex', ago: '2h ago', date: '6 Nov 2026', desc: 'Tracks the weekly rotation and pings 10s before each Bombardment and Vitalis phase. Includes Team Split and Purple Bomb callouts with distinct sounds.' },
+  { title: 'Telos enrage phase alerts', author: 'Mossrunner', ago: '5h ago', date: '6 Nov 2026', desc: 'Separate chimes per phase, tendril and anima bomb warnings, plus an instability timer once you go past 100% enrage.' },
+  { title: 'Low prayer + overload expiry', author: 'Bryn Elder', ago: '9h ago', date: '6 Nov 2026', desc: 'Two quiet alarms: prayer under 25% and overload with 30s left. A good general-purpose PvM set.' },
+  { title: 'Araxxor path swap notifier', author: 'Thok It', ago: '1d ago', date: '5 Nov 2026', desc: 'Flags when the next path opens and when the acid pool starts to spread.' },
+  { title: 'Rasial life transfer warning', author: 'Kerapac Ken', ago: '1d ago', date: '5 Nov 2026', desc: 'Loud ping on the life transfer cast so you never miss the freedom window.' },
+  { title: 'Croesus sticky fungus timer', author: 'Saradomin Sam', ago: '2d ago', date: '4 Nov 2026', desc: 'Countdown for fungus spawns and a reminder to swap to the correct skilling station.' },
+  { title: 'Solak blight stack counter', author: 'Ironvex', ago: '3d ago', date: '3 Nov 2026', desc: 'Alerts at 3 and 5 blight stacks. Pairs well with the Solak tile set.' },
+  { title: 'Kerapac echo alarm', author: 'Lumby Lad', ago: '4d ago', date: '2 Nov 2026', desc: 'Warns on echo spawns in hard mode, with a separate tone for the lightning phase.' },
+];
+const TILES = [
+  { title: 'Zamorak P4 tile set', author: 'Mossrunner', ago: '1h ago', date: '6 Nov 2026', desc: 'Infernal tomb tiles, P4 rift positions and the safe line for adrenaline stalls.' },
+  { title: 'Raksha safe spots', author: 'Thok It', ago: '6h ago', date: '6 Nov 2026', desc: 'Shadow-clone dodge tiles and the four corner spots for the shockwave phase.' },
+  { title: 'Arch-Glacor arms rotation', author: 'Bryn Elder', ago: '11h ago', date: '6 Nov 2026', desc: 'Arm spawn tiles, beam lanes and the flurry stand spot. Colour-coded by mechanic.' },
+  { title: 'TzKal-Zuk Har-Aken tiles', author: 'Saradomin Sam', ago: '1d ago', date: '5 Nov 2026', desc: 'Har-Aken tentacle tiles for waves 9 and 14 plus a Jad stand spot.' },
+  { title: 'Nakatra P2 tile markers', author: 'Ironvex', ago: '2d ago', date: '4 Nov 2026', desc: 'Soul-split resonance spots and the quickest path between them.' },
+  { title: 'Ambassador ED3 dodge tiles', author: 'Kerapac Ken', ago: '2d ago', date: '4 Nov 2026', desc: 'Black hole dodges and the safe arc during the beam attack.' },
+  { title: 'Vermyx & Kezalam stand spots', author: 'Lumby Lad', ago: '3d ago', date: '3 Nov 2026', desc: 'Sanctum of Rebirth stand spots for both bosses, duo-friendly.' },
+  { title: 'Black Stone Dragon ED2', author: 'Mossrunner', ago: '5d ago', date: '1 Nov 2026', desc: 'Dragonfire dodge tiles and the shadow wall corners.' },
+];
+WATCHDOG.forEach((p, i) => { p.kind = 'watchdog'; p.str = importString(i + 11, 600 + i * 37); });
+TILES.forEach((p, i) => { p.kind = 'tiles'; p.str = importString(i + 101, 520 + i * 41); });
+const DETAIL = WATCHDOG[0];
+DETAIL.full = importString(4242, 1840);
+const KIND = { watchdog: 'Watchdog', tiles: 'Tile markers' };
+const initials = n => n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const copyIcons = (c = 'size-4') => icon('copy', c + ' ic-copy') + icon('check', c + ' ic-check');
+const themeIcons = (c = 'size-4') => icon('moon', c + ' only-light') + icon('sun', c + ' only-dark');
+const fill = (sel, html) => document.querySelectorAll(sel).forEach(e => (e.innerHTML = html));
+
+function hydrate() {
+  document.querySelectorAll('[data-i]').forEach(e => { e.outerHTML = icon(e.dataset.i, e.dataset.c || 'size-4'); });
+  document.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => {
+    const src = btn.dataset.copy && document.querySelector(btn.dataset.copy);
+    navigator.clipboard?.writeText(btn.dataset.str || (src ? src.textContent.trim() : '')).catch(() => {});
+    const label = btn.querySelector('.copy-label');
+    btn.classList.add('is-copied');
+    if (label) { const old = label.textContent; label.textContent = 'Copied!'; setTimeout(() => { label.textContent = old; btn.classList.remove('is-copied'); }, 1400); }
+    else setTimeout(() => btn.classList.remove('is-copied'), 1400);
+  }));
+  document.querySelectorAll('[data-theme-toggle]').forEach(b => b.addEventListener('click', () => {
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  }));
+  // tab bar highlight
+  const links = [...document.querySelectorAll('[data-tab]')];
+  const io = new IntersectionObserver(es => es.forEach(en => {
+    if (en.isIntersecting) links.forEach(l => l.classList.toggle('tab-active', l.dataset.tab === en.target.id));
+  }), { rootMargin: '-45% 0px -50% 0px' });
+  document.querySelectorAll('section[id]').forEach(s => io.observe(s));
+}
+
+
+const av = (n, size = 'size-6', text = 'text-[10px]') =>
+  `<div class="avatar avatar-placeholder"><div class="${size} rounded-full bg-neutral text-neutral-content ${text} font-bold"><span>${initials(n)}</span></div></div>`;
+
+function nav(spec) {
+  const [state, active] = spec.split(':');
+  const me = state === 'in';
+  const link = (k, label) => `<a class="flex items-center border-b-2 px-3 ${active === k ? 'border-primary text-primary' : 'border-transparent hover:text-primary'}">${label}</a>`;
+  return `
+  <header class="navbar min-h-12 gap-2 border-b border-base-content/10 bg-base-200 px-2 py-0 sm:px-4">
+    <div class="navbar-start w-auto flex-1 gap-1">
+      <details class="dropdown sm:hidden">
+        <summary class="btn btn-ghost btn-sm btn-square" aria-label="Menu">${icon('menu')}</summary>
+        <ul class="menu dropdown-content z-10 mt-2 w-48 rounded-box border border-base-content/10 bg-base-100 p-1 shadow">
+          <li><a>${icon('bell')}Watchdog</a></li><li><a>${icon('grid')}Tile markers</a></li>
+        </ul>
+      </details>
+      <a class="flex items-center gap-1.5 font-display text-sm font-bold uppercase tracking-[0.12em]"><span class="text-primary">${icon('rune', 'size-5')}</span>Rune<span class="-ml-1.5 text-primary">Share</span></a>
+      <nav class="ml-4 hidden h-12 self-stretch font-display text-xs uppercase tracking-wider sm:flex">${link('watchdog', 'Watchdog')}${link('tiles', 'Tile markers')}</nav>
+    </div>
+    <div class="navbar-end w-auto gap-1">
+      <button class="btn btn-ghost btn-sm btn-square" data-theme-toggle aria-label="Toggle theme">${themeIcons()}</button>
+      ${me ? `
+        <a class="btn btn-ghost btn-sm hidden font-display text-xs uppercase tracking-wider md:inline-flex">My shares</a>
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost btn-sm gap-2 px-1">${av('Ironvex')}<span class="hidden text-xs sm:inline">Ironvex</span></summary>
+          <ul class="menu dropdown-content z-10 mt-2 w-44 rounded-box border border-base-content/10 bg-base-100 p-1 shadow">
+            <li><a>${icon('user')}My shares</a></li><li><a>${icon('logout')}Sign out</a></li>
+          </ul>
+        </details>` : `<a class="btn btn-primary btn-sm">Sign in</a>`}
+    </div>
+  </header>`;
+}
+
+const panel = kind => {
+  const list = (kind === 'watchdog' ? WATCHDOG : TILES).slice(0, 4);
+  return `
+  <div class="overflow-hidden rounded-box border border-base-content/10 bg-base-100">
+    <div class="flex items-center justify-between border-b border-l-2 border-base-content/10 border-l-primary bg-base-200 px-3 py-2">
+      <h2 class="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wider"><span class="text-primary">${icon(kind === 'watchdog' ? 'bell' : 'grid')}</span>Newest ${kind === 'watchdog' ? 'Watchdog alarms' : 'tile markers'}</h2>
+      <a class="text-xs text-primary hover:underline">View all</a>
+    </div>
+    <ul class="divide-y divide-base-content/5">${list.map(p => `
+      <li class="flex items-center gap-3 px-3 py-2 hover:bg-base-200/60">
+        <div class="min-w-0 flex-1">
+          <a class="block truncate text-sm font-medium hover:text-primary">${p.title}</a>
+          <div class="flex items-center gap-1.5 text-xs text-base-content/50">${av(p.author, 'size-4', 'text-[7px]')}${p.author} · ${p.ago}</div>
+        </div>
+        <span class="hidden w-28 truncate font-mono text-[11px] text-base-content/35 sm:block">${p.str.slice(0, 20)}</span>
+        <button class="btn btn-ghost btn-xs btn-square" data-copy data-str="${p.str}" aria-label="Copy import string">${copyIcons()}</button>
+      </li>`).join('')}
+    </ul>
+  </div>`;
+};
+
+const row = p => `
+  <tr class="hover:bg-base-200/60">
+    <td class="max-w-0 w-full">
+      <a class="block truncate font-medium hover:text-primary">${p.title}</a>
+      <div class="truncate text-xs text-base-content/50 max-sm:hidden">${p.desc}</div>
+      <div class="text-xs text-base-content/50 sm:hidden">${p.author} · ${p.ago}</div>
+    </td>
+    <td class="hidden whitespace-nowrap md:table-cell"><span class="flex items-center gap-1.5">${av(p.author, 'size-5', 'text-[8px]')}${p.author}</span></td>
+    <td class="hidden whitespace-nowrap text-base-content/60 sm:table-cell">${p.ago}</td>
+    <td class="hidden font-mono text-[11px] text-base-content/35 lg:table-cell">${p.str.slice(0, 16)}</td>
+    <td class="text-right"><button class="btn btn-ghost btn-xs btn-square" data-copy data-str="${p.str}" aria-label="Copy">${copyIcons()}</button></td>
+  </tr>`;
+
+document.querySelectorAll('[data-nav]').forEach(e => (e.outerHTML = nav(e.dataset.nav)));
+document.querySelectorAll('[data-panel]').forEach(e => (e.outerHTML = panel(e.dataset.panel)));
+fill('[data-rows]', WATCHDOG.map(row).join(''));
+fill('[data-footer]', `<footer class="mx-auto max-w-6xl px-4 pb-6 pt-2 text-[11px] text-base-content/40">RuneShare · community-made, not affiliated with Jagex.</footer>`);
+fill('[data-detail="title"]', DETAIL.title); fill('[data-detail="author"]', DETAIL.author);
+fill('[data-detail="date"]', DETAIL.date); fill('[data-detail="desc"]', DETAIL.desc);
+fill('[data-detail="avatar"]', av(DETAIL.author)); fill('[data-detail="full"]', DETAIL.full);
+fill('[data-detail="short"]', TILES[0].str.slice(0, 140));
+fill('[data-copyicons]', copyIcons());
+hydrate();
+</script>
+</body>
+</html>
