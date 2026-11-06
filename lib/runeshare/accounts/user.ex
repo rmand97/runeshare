@@ -8,7 +8,8 @@ defmodule Runeshare.Accounts.User do
     domain: Runeshare.Accounts,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshAuthentication]
+    extensions: [AshAuthentication],
+    simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   authentication do
     tokens do

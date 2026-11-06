@@ -114,6 +114,7 @@ defmodule Runeshare.MixProject do
       {:telemetry_poller, "~> 1.3"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.4"},
+      {:logger_json, "~> 7.0"},
       {:dns_cluster, "~> 0.3"},
       {:bandit, "~> 1.14"},
       {:dotenvy, "~> 1.2"},

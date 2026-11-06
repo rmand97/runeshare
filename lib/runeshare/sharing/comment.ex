@@ -8,7 +8,8 @@ defmodule Runeshare.Sharing.Comment do
     domain: Runeshare.Sharing,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    notifiers: [Ash.Notifier.PubSub]
+    notifiers: [Ash.Notifier.PubSub],
+    simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   postgres do
     table "comments"

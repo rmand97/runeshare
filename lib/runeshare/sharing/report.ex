@@ -8,7 +8,8 @@ defmodule Runeshare.Sharing.Report do
     otp_app: :runeshare,
     domain: Runeshare.Sharing,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   postgres do
     table "reports"

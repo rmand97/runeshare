@@ -29,6 +29,9 @@ config :ash,
   many_to_many_destroy_destination_on_match?: true,
   known_types: [AshPostgres.Timestamptz, AshPostgres.TimestamptzUsec]
 
+# One log line per Ash action (who, what, how long, how it ended): Runeshare.ActionLog.
+config :ash, tracer: [Runeshare.ActionLog]
+
 config :spark,
   formatter: [
     remove_parens?: true,
@@ -111,13 +114,37 @@ config :tailwind,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
-# Configure Elixir's Logger
+# Configure Elixir's Logger. Production swaps in a JSON formatter (config/runtime.exs).
+# user_id is an id, never an email; see RuneshareWeb.Plugs.LogMetadata.
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [
+    :request_id,
+    :user_id,
+    :live_view,
+    :event,
+    # Runeshare.ActionLog; the message carries the same, readably.
+    :ash_action,
+    :outcome,
+    :duration_ms,
+    :actor_id,
+    :record_id,
+    :error_class,
+    # Runeshare.Repo.SlowQueryLog
+    :slow_query_ms,
+    :source
+  ]
+
+# Queries slower than this log a warning (Runeshare.Repo.SlowQueryLog).
+config :runeshare, :slow_query_ms, 200
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# Masked as [FILTERED] wherever Phoenix logs params (matches substrings, so
+# "token" also covers _csrf_token, access_token, id_token). code/state are the
+# OAuth callback's.
+config :phoenix, :filter_parameters, ["password", "secret", "token", "code", "state"]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
