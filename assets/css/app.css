@@ -138,3 +138,14 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* Focused form fields get the primary (gold) ring, the same as the tag picker.
+   Fields showing an error keep their red ring. */
+:is(.input, .textarea, .select, .file-input):is(:focus, :focus-within):not(
+    .input-error,
+    .textarea-error,
+    .select-error,
+    .file-input-error
+  ) {
+  --input-color: var(--color-primary);
+}

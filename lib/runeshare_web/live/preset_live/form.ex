@@ -210,6 +210,7 @@ defmodule RuneshareWeb.PresetLive.Form do
               debounce={150}
               placeholder="Type a boss, skill or activity"
               text_input_class="input w-full"
+              text_input_selected_class=""
             />
             <p class="text-xs text-base-content/65">
               Up to 5. Pick a suggestion, or press Enter to add your own.

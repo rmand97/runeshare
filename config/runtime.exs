@@ -186,6 +186,9 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
+  # Every other host name (www., the fly.dev name) redirects here.
+  config :runeshare, :canonical_host, host
+
   config :runeshare, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :runeshare, RuneshareWeb.Endpoint,
