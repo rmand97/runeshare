@@ -30,3 +30,8 @@ Create an OAuth client at <https://console.cloud.google.com/apis/credentials>
 - `/admin` (dev only) — AshAdmin. `/dev/dashboard` — LiveDashboard.
 
 Agent rules live in `CLAUDE.md` and `.claude/skills/`.
+
+## Production
+
+Runs on Fly.io (app + self-run Postgres) with cover images in Tigris: <https://runeshare.fly.dev>.
+`fly deploy` ships a new version. Setup, costs, backups and secrets: [DEPLOY.md](DEPLOY.md).
