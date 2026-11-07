@@ -87,6 +87,14 @@ defmodule Runeshare.Accounts.User do
       prepare AshAuthentication.Preparations.FilterBySubject
     end
 
+    destroy :destroy_account do
+      description "The signed-in user deleting their own account and everything they shared."
+      # Deletes the user's presets (and their stored cover images) first; that's
+      # several actions plus file deletion, which can't be one SQL statement.
+      require_atomic? false
+      change Runeshare.Accounts.User.Changes.DeleteOwnPresets
+    end
+
     update :update_profile do
       description "The signed-in user changing their own display name."
       accept [:name]
@@ -167,7 +175,7 @@ defmodule Runeshare.Accounts.User do
       authorize_if always()
     end
 
-    policy action(:update_profile) do
+    policy action([:update_profile, :destroy_account]) do
       authorize_if expr(id == ^actor(:id))
     end
   end

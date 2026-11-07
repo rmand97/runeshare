@@ -45,4 +45,12 @@ defmodule RuneshareWeb.OAuthRequestTest do
   test "sign-in texts still get their %{placeholders} filled in" do
     assert RuneshareWeb.AuthText.translate("Hello %{name}", name: "Zezima") == "Hello Zezima"
   end
+
+  test "a failed sign-in names the provider that failed", %{conn: conn} do
+    # A callback without the matching session state fails before any provider is called.
+    conn = get(conn, "/auth/user/discord/callback?code=x&state=y")
+
+    assert redirected_to(conn) == ~p"/sign-in"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Discord sign-in failed"
+  end
 end

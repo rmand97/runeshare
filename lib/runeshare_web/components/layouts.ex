@@ -154,6 +154,14 @@ defmodule RuneshareWeb.Layouts do
       >
         <.icon name="hero-chat-bubble-left-ellipsis" class="size-3.5" /> Report a problem
       </a>
+      <span aria-hidden="true">·</span>
+      <.link
+        id="footer-privacy"
+        navigate={~p"/privacy"}
+        class="underline-offset-2 sm:hover:text-primary sm:hover:underline"
+      >
+        Privacy
+      </.link>
     </footer>
 
     <LiveToast.toast_group

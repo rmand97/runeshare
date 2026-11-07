@@ -45,6 +45,18 @@ defmodule RuneshareWeb.AccountLive do
     {:noreply, socket}
   end
 
+  # The session cookie still holds this user's token, but it no longer resolves
+  # to a user, so the next page load is signed out.
+  def handle_event("delete_account", _params, socket) do
+    user = socket.assigns.current_user
+    Accounts.delete_account!(user, actor: user)
+
+    {:noreply,
+     socket
+     |> put_flash(:info, "Your account and everything you shared have been deleted")
+     |> redirect(to: ~p"/")}
+  end
+
   def handle_event("save", %{"form" => params}, socket) do
     case AshPhoenix.Form.submit(socket.assigns.form, params: params) do
       {:ok, user} ->
@@ -229,6 +241,27 @@ defmodule RuneshareWeb.AccountLive do
           <.load_more id="more-liked" event="more_liked" paging={@paging.liked} />
         </.panel>
       </div>
+
+      <.panel id="delete-account" title="Delete account" icon="hero-trash">
+        <div class="flex flex-col gap-3 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-base-content/75">
+            Deletes your account and everything you shared: presets (with their old versions
+            and cover images), comments and likes. This can't be undone. You can sign in again
+            later, but you'll start with a new, empty account.
+          </p>
+          <button
+            id="delete-account-button"
+            type="button"
+            phx-click="delete_account"
+            phx-disable-with="Deleting..."
+            data-confirm="Delete your account and everything you shared? This can't be undone."
+            title="Delete your account and everything you shared"
+            class="btn shrink-0 btn-outline btn-error btn-sm"
+          >
+            <.icon name="hero-trash" class="size-4" /> Delete my account
+          </button>
+        </div>
+      </.panel>
     </Layouts.app>
     """
   end

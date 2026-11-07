@@ -39,6 +39,7 @@ defmodule RuneshareWeb.Router do
       live "/presets/:id", PresetLive.Show, :show
       live "/presets/:id/v/:number", PresetLive.Show, :version
       live "/u/:id", AuthorLive, :show
+      live "/privacy", PrivacyLive, :show
     end
 
     ash_authentication_live_session :authenticated,

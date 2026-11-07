@@ -201,7 +201,9 @@ defmodule RuneshareWeb.PresetShowTest do
 
       assert meta(head, "meta[property='og:description']") == "Pings before each rotation."
       assert meta(head, "meta[property='og:url']") =~ ~r"^http.*/presets/#{preset.id}$"
-      assert meta(head, "meta[name='twitter:card']") == "summary"
+      assert meta(head, "meta[name='twitter:card']") == "summary_large_image"
+      # No cover image: the site's share card.
+      assert meta(head, "meta[property='og:image']") =~ ~r"^http.*/images/og-default\.png$"
     end
 
     test "pages without their own tags fall back to site defaults", %{conn: conn} do
@@ -209,6 +211,11 @@ defmodule RuneshareWeb.PresetShowTest do
 
       assert meta(head, "meta[property='og:title']") == "RuneShare"
       assert meta(head, "meta[property='og:site_name']") == "RuneShare"
+      assert meta(head, "meta[property='og:image']") =~ ~r"/images/og-default\.png$"
+    end
+
+    test "the share card image is served", %{conn: conn} do
+      assert conn |> get(~p"/images/og-default.png") |> response(200)
     end
   end
 

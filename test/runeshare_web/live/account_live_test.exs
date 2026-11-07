@@ -98,4 +98,24 @@ defmodule RuneshareWeb.AccountLiveTest do
       |> assert_has("#profile-name", text: "Old Name")
     end
   end
+
+  describe "deleting your account" do
+    test "deletes it and everything shared, and you're signed out afterwards", %{conn: conn} do
+      user = register_user!()
+      preset = share_preset!(user, %{title: "Soon gone"})
+
+      conn
+      |> log_in_user(user)
+      |> visit(~p"/account")
+      |> click_button("Delete my account")
+      |> assert_path(~p"/")
+      |> assert_has("*", text: "Your account and everything you shared have been deleted")
+      |> refute_has("a[href='/account']")
+      |> visit(~p"/account")
+      |> assert_path(~p"/sign-in")
+
+      assert {:error, _} = Runeshare.Accounts.get_user(user.id)
+      assert {:error, _} = Sharing.get_preset(preset.id)
+    end
+  end
 end

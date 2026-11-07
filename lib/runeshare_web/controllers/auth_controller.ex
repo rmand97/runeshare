@@ -8,6 +8,8 @@ defmodule RuneshareWeb.AuthController do
 
   require Logger
 
+  @providers %{google: "Google", github: "GitHub", discord: "Discord", twitch: "Twitch"}
+
   @impl AshAuthentication.Phoenix.Controller
   def success(conn, activity, user, _token) do
     return_to = get_session(conn, :return_to) || ~p"/"
@@ -26,9 +28,26 @@ defmodule RuneshareWeb.AuthController do
     Logger.warning("sign-in failed via #{inspect(activity)} reason=#{failure_reason(reason)}")
 
     conn
-    |> put_flash(:error, "Google sign-in failed. Please try again.")
+    |> put_flash(:error, failure_message(activity, reason))
     |> redirect(to: ~p"/sign-in")
   end
+
+  # `activity` is `{strategy, phase}`, e.g. `{:discord, :callback}`.
+  defp failure_message({strategy, _phase}, reason) when is_map_key(@providers, strategy) do
+    provider = @providers[strategy]
+
+    if unverified_email?(reason),
+      do: "#{provider} hasn't verified your email address. Verify it there, then try again.",
+      else: "#{provider} sign-in failed. Please try again."
+  end
+
+  defp failure_message(_activity, _reason), do: "Sign-in failed. Please try again."
+
+  # ApplyOAuthProfile refuses unverified emails with this message.
+  defp unverified_email?(reason) when is_exception(reason),
+    do: Exception.message(reason) =~ "hasn't verified this account's email"
+
+  defp unverified_email?(_reason), do: false
 
   @impl AshAuthentication.Phoenix.Controller
   def sign_out(conn, _params) do
@@ -41,7 +60,7 @@ defmodule RuneshareWeb.AuthController do
   end
 
   # The error's type and its cause's type only: AshAuthentication errors can carry
-  # the OAuth response, tokens and the Google profile.
+  # the OAuth response, tokens and the provider's profile.
   defp failure_reason(%{caused_by: %{__struct__: cause}} = reason),
     do: "#{inspect(reason.__struct__)} caused_by=#{inspect(cause)}"
 

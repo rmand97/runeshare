@@ -34,7 +34,7 @@ defmodule RuneshareWeb.SeoController do
     presets = Sharing.list_sitemap_presets!()
 
     entries =
-      [{url(~p"/"), nil}] ++
+      [{url(~p"/"), nil}, {url(~p"/privacy"), nil}] ++
         Enum.map(
           Sharing.preset_kinds(),
           &{unverified_url(RuneshareWeb.Endpoint, kind_path(&1)), nil}

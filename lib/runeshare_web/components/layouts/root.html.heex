@@ -18,11 +18,9 @@
       content={assigns[:og][:description] || default_description()}
     />
     <meta property="og:url" content={canonical_url(assigns)} />
-    <meta :if={assigns[:og][:image]} property="og:image" content={assigns[:og][:image]} />
-    <meta
-      name="twitter:card"
-      content={if assigns[:og][:image], do: "summary_large_image", else: "summary"}
-    />
+    <%!-- Pages without their own image (a preset's cover) share the site card. --%>
+    <meta property="og:image" content={assigns[:og][:image] || url(~p"/images/og-default.png")} />
+    <meta name="twitter:card" content="summary_large_image" />
     <%!-- Structured data (schema.org JSON-LD) for search engines: data, never run. --%>
     <script :if={assigns[:json_ld]} type="application/ld+json" phx-no-format><%= RuneshareWeb.StructuredData.encode(assigns[:json_ld]) %></script>
     <.live_title default="RuneShare" suffix=" · RuneShare" phx-no-format>{assigns[:page_title]}</.live_title>
