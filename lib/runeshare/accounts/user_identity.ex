@@ -1,6 +1,7 @@
 defmodule Runeshare.Accounts.UserIdentity do
   @moduledoc """
-  Google `iss`/`sub` claims linked to a user. Returning users are matched on these, not on email.
+  A sign-in provider's account (strategy + its user id) linked to a user: one
+  row per provider a user has signed in with (Google, GitHub, Discord, Twitch).
   """
 
   use Ash.Resource,

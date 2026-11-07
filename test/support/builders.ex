@@ -35,14 +35,30 @@ defmodule Runeshare.Test.Builders do
       "picture" => "https://example.com/avatar/#{n}.png"
     }
 
+    register_with(:google, user_info)
+  end
+
+  @doc """
+  Signs in through `provider`'s `register_with_<provider>` action with fake
+  `user_info` claims (Assent's normalised shape), the way the OAuth callback
+  would. Never calls the provider.
+  """
+  @spec register_with(:google | :github | :discord | :twitch, map()) ::
+          {:ok, User.t()} | {:error, term()}
+  def register_with(provider, user_info) do
     User
     |> Ash.Changeset.for_create(
-      :register_with_google,
+      register_action(provider),
       %{user_info: user_info, oauth_tokens: %{"access_token" => "fake"}},
       context: %{private: %{ash_authentication?: true}}
     )
     |> Ash.create()
   end
+
+  defp register_action(:google), do: :register_with_google
+  defp register_action(:github), do: :register_with_github
+  defp register_action(:discord), do: :register_with_discord
+  defp register_action(:twitch), do: :register_with_twitch
 
   @doc "Signs in an admin (moderator): `admin@example.com` is in the test `:admin_emails`."
   @spec register_admin!() :: User.t()

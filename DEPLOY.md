@@ -103,6 +103,9 @@ and images are served straight from `https://runeshare-covers.t3.tigrisfiles.io`
 | `SECRET_KEY_BASE`, `TOKEN_SIGNING_SECRET` | Random; changing them signs everyone out |
 | `DATABASE_URL` | `ecto://runeshare:<password>@runeshare-db.internal:5432/runeshare` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | The Google OAuth client. Its authorized redirect URIs must include `https://runeshare.dk/auth/user/google/callback` |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | GitHub OAuth App; callback URL `https://runeshare.dk/auth/user/github/callback` |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | Discord application (OAuth2); redirect `https://runeshare.dk/auth/user/discord/callback` |
+| `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Twitch application; OAuth redirect URL `https://runeshare.dk/auth/user/twitch/callback` |
 | `ADMIN_EMAILS` | Comma-separated; these accounts become moderators on sign-in |
 | Tigris (5) | Set by `fly storage create` |
 

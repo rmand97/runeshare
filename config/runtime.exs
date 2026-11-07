@@ -127,14 +127,25 @@ if config_env() in [:dev, :prod] do
          |> Enum.map(&(&1 |> String.trim() |> String.downcase()))
 end
 
-# Google OAuth (sign-in). Test env uses fixed fake values from config/test.exs.
-# Create credentials at https://console.cloud.google.com/apis/credentials with
-# redirect URI `<base url>/auth/user/google/callback`.
+# OAuth sign-in providers. Test env uses fixed fake values from config/test.exs.
+# Each provider's redirect/callback URL is `<base url>/auth/user/<provider>/callback`:
+#   Google  https://console.cloud.google.com/apis/credentials
+#   GitHub  https://github.com/settings/developers (OAuth App)
+#   Discord https://discord.com/developers/applications (OAuth2 > Redirects)
+#   Twitch  https://dev.twitch.tv/console/apps
+# A provider without credentials still shows its button; signing in with it fails.
 if config_env() in [:dev, :prod] do
-  config :runeshare, :google_oauth,
-    client_id: System.get_env("GOOGLE_CLIENT_ID"),
-    client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
-    redirect_uri: System.get_env("GOOGLE_REDIRECT_URI")
+  for {provider, env} <- [
+        google_oauth: "GOOGLE",
+        github_oauth: "GITHUB",
+        discord_oauth: "DISCORD",
+        twitch_oauth: "TWITCH"
+      ] do
+    config :runeshare, provider,
+      client_id: System.get_env("#{env}_CLIENT_ID"),
+      client_secret: System.get_env("#{env}_CLIENT_SECRET"),
+      redirect_uri: System.get_env("#{env}_REDIRECT_URI")
+  end
 end
 
 if config_env() == :dev do

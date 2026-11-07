@@ -1,6 +1,9 @@
 defmodule Runeshare.Accounts.User do
   @moduledoc """
-  A person signed in with Google. Created on first sign-in, refreshed on each one after.
+  A person signed in with Google, GitHub, Discord or Twitch. Created on first
+  sign-in, refreshed on each one after. One account per verified email: signing
+  in with another provider under the same address lands in the same account
+  (each provider's id is kept in `UserIdentity`).
   """
 
   use Ash.Resource,
@@ -8,7 +11,11 @@ defmodule Runeshare.Accounts.User do
     domain: Runeshare.Accounts,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshAuthentication],
+    extensions: [
+      AshAuthentication,
+      Runeshare.Accounts.Strategies.Discord,
+      Runeshare.Accounts.Strategies.Twitch
+    ],
     simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   authentication do
@@ -22,6 +29,27 @@ defmodule Runeshare.Accounts.User do
 
     strategies do
       google do
+        client_id Runeshare.Secrets
+        redirect_uri Runeshare.Secrets
+        client_secret Runeshare.Secrets
+        identity_resource Runeshare.Accounts.UserIdentity
+      end
+
+      github do
+        client_id Runeshare.Secrets
+        redirect_uri Runeshare.Secrets
+        client_secret Runeshare.Secrets
+        identity_resource Runeshare.Accounts.UserIdentity
+      end
+
+      discord do
+        client_id Runeshare.Secrets
+        redirect_uri Runeshare.Secrets
+        client_secret Runeshare.Secrets
+        identity_resource Runeshare.Accounts.UserIdentity
+      end
+
+      twitch do
         client_id Runeshare.Secrets
         redirect_uri Runeshare.Secrets
         client_secret Runeshare.Secrets
@@ -70,14 +98,62 @@ defmodule Runeshare.Accounts.User do
       argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
       upsert? true
       upsert_identity :unique_email
-      # `name` is only taken from Google on first sign-in; afterwards it's the
+      # `name` is only taken from the provider on first sign-in; afterwards it's the
       # user's own display name, edited on the account page.
       # `role` follows ADMIN_EMAILS on every sign-in, so removing an address demotes it.
       upsert_fields [:email, :avatar_url, :role]
 
       change AshAuthentication.GenerateTokenChange
       change AshAuthentication.Strategy.OAuth2.IdentityChange
-      change Runeshare.Accounts.User.Changes.ApplyGoogleProfile
+      change {Runeshare.Accounts.User.Changes.ApplyOAuthProfile, provider: "Google"}
+    end
+
+    create :register_with_github do
+      description "Sign in or register a user with GitHub."
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
+      upsert? true
+      upsert_identity :unique_email
+      # `name` is only taken from the provider on first sign-in; afterwards it's the
+      # user's own display name, edited on the account page.
+      # `role` follows ADMIN_EMAILS on every sign-in, so removing an address demotes it.
+      upsert_fields [:email, :avatar_url, :role]
+
+      change AshAuthentication.GenerateTokenChange
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
+      change {Runeshare.Accounts.User.Changes.ApplyOAuthProfile, provider: "GitHub"}
+    end
+
+    create :register_with_discord do
+      description "Sign in or register a user with Discord."
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
+      upsert? true
+      upsert_identity :unique_email
+      # `name` is only taken from the provider on first sign-in; afterwards it's the
+      # user's own display name, edited on the account page.
+      # `role` follows ADMIN_EMAILS on every sign-in, so removing an address demotes it.
+      upsert_fields [:email, :avatar_url, :role]
+
+      change AshAuthentication.GenerateTokenChange
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
+      change {Runeshare.Accounts.User.Changes.ApplyOAuthProfile, provider: "Discord"}
+    end
+
+    create :register_with_twitch do
+      description "Sign in or register a user with Twitch."
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false, sensitive?: true
+      upsert? true
+      upsert_identity :unique_email
+      # `name` is only taken from the provider on first sign-in; afterwards it's the
+      # user's own display name, edited on the account page.
+      # `role` follows ADMIN_EMAILS on every sign-in, so removing an address demotes it.
+      upsert_fields [:email, :avatar_url, :role]
+
+      change AshAuthentication.GenerateTokenChange
+      change AshAuthentication.Strategy.OAuth2.IdentityChange
+      change {Runeshare.Accounts.User.Changes.ApplyOAuthProfile, provider: "Twitch"}
     end
   end
 

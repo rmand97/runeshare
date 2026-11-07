@@ -55,6 +55,7 @@ defmodule RuneshareWeb.Router do
     sign_out_route AuthController, "/sign-out"
 
     sign_in_route auth_routes_prefix: "/auth",
+                  gettext_fn: {RuneshareWeb.AuthText, :translate},
                   on_mount:
                     List.flatten([@sandbox_mounts, {RuneshareWeb.LiveUserAuth, :live_no_user}]),
                   overrides: [

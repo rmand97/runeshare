@@ -30,9 +30,11 @@ config :runeshare, :version_merge_window_seconds, 0
 # Cover images go to an in-memory store (started in test_helper.exs).
 config :runeshare, Runeshare.Sharing.Preset, storage: [service: {AshStorage.Service.Test, []}]
 
-config :runeshare, :google_oauth,
-  client_id: "test-google-client-id",
-  client_secret: "test-google-client-secret"
+for provider <- [:google, :github, :discord, :twitch] do
+  config :runeshare, :"#{provider}_oauth",
+    client_id: "test-#{provider}-client-id",
+    client_secret: "test-#{provider}-client-secret"
+end
 
 config :runeshare, RuneshareWeb.Endpoint,
   # Port is decided in config/runtime.exs from RUNESHARE_SLOT — see `mix runeshare.slot`.

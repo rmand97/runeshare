@@ -1,6 +1,6 @@
 defmodule Runeshare.Accounts do
   @moduledoc """
-  Users and their Google sign-in identities.
+  Users and their sign-in identities (Google, GitHub, Discord, Twitch).
   """
 
   use Ash.Domain, otp_app: :runeshare, extensions: [AshAdmin.Domain, AshPhoenix]
