@@ -35,6 +35,10 @@ back into theirs. Community-made, not affiliated with Jagex.
 Check the [open issues](https://github.com/rmand97/runeshare/issues) first; a
 👍 on an existing one helps more than a duplicate.
 
+To reach the developer directly: Discord
+[rafl1772](https://discord.com/users/158185574702907392), or email
+<raflnatorr.gaming@gmail.com>.
+
 ## Running it locally
 
 Phoenix 1.8 · LiveView 1.2 · Ash 3 (AshPostgres, AshAuthentication, AshStorage) ·

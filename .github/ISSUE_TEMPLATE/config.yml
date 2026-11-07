@@ -6,3 +6,6 @@ contact_links:
   - name: Security problem
     url: https://github.com/rmand97/runeshare/security/advisories/new
     about: Please report security issues privately here, not as a public issue.
+  - name: Talk to the developer on Discord
+    url: https://discord.com/users/158185574702907392
+    about: Questions, quick feedback or anything that isn't an issue — message rafl1772 on Discord.

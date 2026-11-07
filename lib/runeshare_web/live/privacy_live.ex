@@ -10,6 +10,7 @@ defmodule RuneshareWeb.PrivacyLive do
 
   @updated ~D[2026-11-07]
   @contact "raflnatorr.gaming@gmail.com"
+  @discord %{name: "rafl1772", url: "https://discord.com/users/158185574702907392"}
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
@@ -18,6 +19,7 @@ defmodule RuneshareWeb.PrivacyLive do
         page_title: "Privacy",
         updated: @updated,
         contact: @contact,
+        discord: @discord,
         og: %{
           title: "Privacy — RuneShare",
           description: "What RuneShare stores about you, why, and how to delete it.",
@@ -56,7 +58,13 @@ defmodule RuneshareWeb.PrivacyLive do
           <h2>Who runs it</h2>
           <p>
             RuneShare is run privately by its developer, who decides what is stored and why.
-            Questions or requests about your data: <a href={"mailto:" <> @contact}>{@contact}</a>.
+            Questions or requests about your data: <a href={"mailto:" <> @contact}>{@contact}</a>,
+            or on Discord: <a
+              id="privacy-discord"
+              href={@discord.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >{@discord.name}</a>.
           </p>
         </section>
 
