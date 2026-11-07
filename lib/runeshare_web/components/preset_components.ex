@@ -141,6 +141,7 @@ defmodule RuneshareWeb.PresetComponents do
   attr :target, :string, default: nil
   attr :label, :string, default: nil, doc: "visible label; icon-only when nil"
   attr :class, :string, default: "btn btn-ghost btn-xs btn-square"
+  attr :title, :string, default: "Copy the import string", doc: "hover text"
 
   attr :track, :string,
     default: nil,
@@ -158,6 +159,7 @@ defmodule RuneshareWeb.PresetComponents do
       data-target={@target}
       data-track={@track}
       aria-label={@label || "Copy import string"}
+      title={@title}
     >
       <.icon name="hero-clipboard-document" class="size-4 in-data-copied:hidden" />
       <.icon name="hero-check" class="hidden size-4 text-success in-data-copied:inline-block" />
@@ -276,6 +278,29 @@ defmodule RuneshareWeb.PresetComponents do
   end
 
   @doc """
+  `track_copy/2` for a preset card in a stream: on a first copy from this page the
+  card is re-fetched and re-inserted, so its copy count goes up. `stream_name`
+  maps the fresh preset to the stream it lives in.
+  """
+  @spec track_copy(Phoenix.LiveView.Socket.t(), String.t(), (struct() -> atom())) ::
+          Phoenix.LiveView.Socket.t()
+  def track_copy(socket, id, stream_name) do
+    tracked = track_copy(socket, id)
+
+    if tracked.assigns.copied == socket.assigns.copied,
+      do: tracked,
+      else: refresh_card(tracked, id, stream_name)
+  end
+
+  # The preset may be hidden or deleted by now; then the card stays as it is.
+  defp refresh_card(socket, id, stream_name) do
+    case Runeshare.Sharing.get_preset(id, actor: socket.assigns.current_user) do
+      {:ok, preset} -> Phoenix.LiveView.stream_insert(socket, stream_name.(preset), preset)
+      {:error, _error} -> socket
+    end
+  end
+
+  @doc """
   Like toggle for a preset loaded with `:like_count` and `:liked_by_me`.
   Signed-out visitors get a link to sign in instead.
   """
@@ -290,6 +315,7 @@ defmodule RuneshareWeb.PresetComponents do
       type="button"
       phx-click="toggle_like"
       aria-pressed={to_string(@preset.liked_by_me)}
+      title={if @preset.liked_by_me, do: "Remove your like", else: "Like this preset"}
       class={["group btn btn-sm", if(@preset.liked_by_me, do: "btn-primary", else: "btn-outline")]}
     >
       <.icon
@@ -299,7 +325,12 @@ defmodule RuneshareWeb.PresetComponents do
       <span>{if @preset.liked_by_me, do: "Liked", else: "Like"}</span>
       <span class="font-mono">{@preset.like_count}</span>
     </button>
-    <.link :if={!@current_user} navigate={~p"/sign-in"} class="group btn btn-outline btn-sm">
+    <.link
+      :if={!@current_user}
+      navigate={~p"/sign-in"}
+      title="Sign in to like this preset"
+      class="group btn btn-outline btn-sm"
+    >
       <.icon name="hero-heart" class={heart_class()} /> Like
       <span class="font-mono">{@preset.like_count}</span>
     </.link>

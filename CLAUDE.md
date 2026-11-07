@@ -76,7 +76,7 @@ AshAI MCP tools: code generation + resource introspection (deferred, load with `
 - **Discovery**: `tags` (≤5, normalised by `Preset.Changes.NormalizeTags`, which also maps nicknames to standard tags via `Sharing.TagCatalog`; free tags allowed; the form picks tags with LiveSelect, suggestions from `TagCatalog.suggest/1`), `copy_count` (aggregate over `PresetCopy`, one row per preset + visitor; `record_copy!(preset_id, socket.assigns.visitor)` — `@visitor` comes from `LiveUserAuth`, `"user:<id>"` or `"anon:<session visitor_id>"`), `content_hash` (`find_duplicate_presets`), sorts `:newest | :most_liked | :most_copied`. `list_presets!(kind, %{search:, sort:, tag:}, opts)` — optional filters go in the params map, never positionally (positional optionals swallow keyword opts).
 - **Moderation**: `User.role` is `:admin` for addresses in `ADMIN_EMAILS` (re-evaluated every sign-in). Admins bypass Preset/Report policies, can delete any comment, `hide_preset`/`unhide_preset` (hidden presets — and their versions, comments and likes — are visible only to author + admins; creates that hang off a preset use `Changes.RequireVisiblePreset`). `Report` (one per user+preset, `report_preset!(preset_id, reason, %{note:}, opts)`), `list_open_reports`, `resolve_report`.
 - **Rate limits**: `Runeshare.Sharing.Validations.RateLimit` counts the actor's recent rows in the DB (10 presets/hour, 10 comments/5 min).
-- **Real-time**: Ash `pub_sub` notifiers broadcast through `RuneshareWeb.Endpoint` on `presets:shared:<kind>`, `presets:deleted:<kind>`, `presets:<id>`, `likes:<preset_id>`, `comments:<preset_id>`. Notification data carries no loads — re-fetch through a code interface.
+- **Real-time**: Ash `pub_sub` notifiers broadcast through `RuneshareWeb.Endpoint` on `presets:shared:<kind>`, `presets:deleted:<kind>`, `presets:<id>`, `likes:<preset_id>`, `comments:<preset_id>`. Each resource owns its topics: a `@topic` prefix shared by its `pub_sub` block and its `subscribe`/`unsubscribe` functions. LiveViews subscribe only through the domain (`Sharing.subscribe_to_kind/1`, `subscribe_to_preset/1`, `unsubscribe_from_preset/1`) — never `Endpoint.subscribe` with a hand-built topic. Notification data carries no loads — re-fetch through a code interface.
 - **Logging**: `Runeshare.ActionLog` is the global `Ash.Tracer` — one line per action (actor id, duration, outcome, record id via `ActionLog.Notifier` in `simple_notifiers`). Don't add `Logger` calls around code-interface calls; log only what Ash can't see. Never log emails, tokens or action inputs. Prod is JSON (`config/runtime.exs`, metadata allow-list).
 - **LiveView data loading**: use `stream_async`/`assign_async`/`start_async` with `<.async_result>` skeletons for lists; streams for anything that grows (comments, listings). Capture actor/ids in variables before the async fn — never reference `socket` inside it.
 - **One `Preset` resource for both plugins**, discriminated by `kind` (`:watchdog_alarm | :tile_marker`, see `Preset.kinds/0`). A new plugin = a new kind, not a new resource. Per-kind labels and paths live in `RuneshareWeb.PresetComponents`.
@@ -93,6 +93,8 @@ Google OAuth via AshAuthentication (`google` strategy, `UserIdentity` stores `is
 Policies live on the resource. Reads are public; creates need an actor; update/destroy need `relates_to_actor_via(:author)`. User emails are hidden from everyone but the user (field policy) — show `name` instead.
 
 ### Code interfaces are the only entry point
+Layering: **resource** owns the logic for its data (actions, policies, pub/sub topics, subscribe functions) → **domain** composes resources into the API (code interfaces, plus plain functions like `Sharing.subscribe_to_preset/1` that combine several resources) → **web layer** calls only the domain. Non-action logic follows the same path: put it on the resource it belongs to, expose it from the domain.
+
 - Define code interfaces on the domain (`define :share_preset, action: :share`).
 - Call them from LiveViews and controllers — **never** `Ash.create!/2`, `Ash.Query`, or `load:`/`query:` options built ad hoc in web modules (credo `NoAdHocAshQueries` enforces). Need a load or filter? Add an action, argument, or `default_options`.
 - **Never** call `Repo` outside explicit infrastructure code.
@@ -126,7 +128,7 @@ Suppress with `# credo:disable-for-next-definition <Check>` plus a reason commen
 - Don't use raw Ecto in domain code (use Ash).
 - Don't use `String.to_atom/1` on user input.
 - Don't set `require_atomic? false` without a justified reason.
-- Don't write inline `<script>` tags in templates. Use colocated hooks (`:type={Phoenix.LiveView.ColocatedHook}`) or `assets/js/`.
+- Don't write inline `<script>` tags in templates. Use colocated hooks (`:type={Phoenix.LiveView.ColocatedHook}`) or `assets/js/`. Exception: the root layout's `application/ld+json` block (data, not code), built by `RuneshareWeb.StructuredData` — pages assign `json_ld`.
 - Don't reference external vendor scripts/CSS via `src`/`href`. Bundle through `app.js` / `app.css`.
 - Don't use `@apply` in CSS. Don't add `tailwind.config.js`.
 - Don't nest multiple modules in one file.

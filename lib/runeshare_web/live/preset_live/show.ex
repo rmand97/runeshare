@@ -16,8 +16,8 @@ defmodule RuneshareWeb.PresetLive.Show do
   alias Phoenix.Socket.Broadcast
   alias Runeshare.Sharing
   alias Runeshare.Sharing.ImportString
-  alias RuneshareWeb.Endpoint
   alias RuneshareWeb.Paging
+  alias RuneshareWeb.StructuredData
 
   @impl Phoenix.LiveView
   def mount(%{"id" => id}, _session, socket) do
@@ -25,14 +25,14 @@ defmodule RuneshareWeb.PresetLive.Show do
     preset = Sharing.get_preset!(id, actor: user)
 
     if connected?(socket) do
-      Enum.each(~w(presets comments likes), &Endpoint.subscribe("#{&1}:#{preset.id}"))
+      Sharing.subscribe_to_preset(preset.id)
     end
 
     socket =
       socket
       |> assign(preset: preset, version: nil, copied: MapSet.new(), report_form: nil)
       # Hidden presets are only for their author and admins: keep them out of search.
-      |> assign(og: og(preset), noindex: preset.hidden)
+      |> assign(og: og(preset), noindex: preset.hidden, json_ld: json_ld(preset))
       |> assign_comment_form()
       |> load_versions()
       |> load_comments()
@@ -130,7 +130,8 @@ defmodule RuneshareWeb.PresetLive.Show do
 
   def handle_event("delete", _params, socket) do
     %{preset: preset, current_user: user} = socket.assigns
-    Endpoint.unsubscribe("presets:#{preset.id}")
+    # Our own delete broadcast would otherwise bounce this page before the flash.
+    Sharing.unsubscribe_from_preset(preset.id)
     Sharing.delete_preset!(preset, actor: user)
 
     {:noreply,
@@ -293,20 +294,22 @@ defmodule RuneshareWeb.PresetLive.Show do
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <.like_button preset={@preset} current_user={@current_user} />
           <span id="copy-count" class="font-mono text-xs text-base-content/70" title="Copies">
             Copied {@preset.copy_count}×
           </span>
+          <.like_button preset={@preset} current_user={@current_user} />
           <.copy_button
             id="share-preset"
             content={url(~p"/presets/#{@preset}")}
             label="Share"
+            title="Copy a link to this preset"
             class="btn btn-outline btn-sm"
           />
           <button
             :if={@current_user && !owner?(@preset, @current_user) && !@report_form}
             type="button"
             class="btn btn-ghost btn-sm"
+            title="Report this preset to the moderators"
             phx-click="open_report"
           >
             <.icon name="hero-flag" class="size-4" /> Report
@@ -316,6 +319,11 @@ defmodule RuneshareWeb.PresetLive.Show do
             id="toggle-hidden"
             type="button"
             class="btn btn-outline btn-sm btn-warning"
+            title={
+              if @preset.hidden,
+                do: "Make this preset visible to everyone again",
+                else: "Hide this preset from everyone but its author and admins"
+            }
             phx-click="toggle_hidden"
           >
             <%= if @preset.hidden do %>
@@ -327,6 +335,7 @@ defmodule RuneshareWeb.PresetLive.Show do
           <.link
             :if={!@version and owner?(@preset, @current_user)}
             navigate={~p"/presets/#{@preset}/edit"}
+            title="Edit this preset"
             class="btn btn-outline btn-sm"
           >
             <.icon name="hero-pencil-square" class="size-4" /> Edit
@@ -335,6 +344,7 @@ defmodule RuneshareWeb.PresetLive.Show do
             :if={!@version and (owner?(@preset, @current_user) or admin?(@current_user))}
             type="button"
             class="btn btn-outline btn-error btn-sm"
+            title="Delete this preset"
             phx-click="delete"
             data-confirm="Delete this preset?"
           >
@@ -577,6 +587,13 @@ defmodule RuneshareWeb.PresetLive.Show do
       url: url(~p"/presets/#{preset}"),
       image: preset.cover_image_url
     }
+  end
+
+  defp json_ld(preset) do
+    [
+      StructuredData.preset(preset),
+      StructuredData.breadcrumbs(preset.kind, [{preset.title, url(~p"/presets/#{preset}")}])
+    ]
   end
 
   defp truncate(text, max) do

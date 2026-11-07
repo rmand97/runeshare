@@ -72,9 +72,11 @@ defmodule Runeshare.Sharing.Comment do
     end
   end
 
+  @topic "comments"
+
   pub_sub do
     module RuneshareWeb.Endpoint
-    prefix "comments"
+    prefix @topic
     publish_all :create, [:preset_id]
     publish_all :destroy, [:preset_id]
   end
@@ -110,4 +112,12 @@ defmodule Runeshare.Sharing.Comment do
       public? true
     end
   end
+
+  @doc "Subscribes the caller to posted and removed comments on one preset (`\"comments:<preset_id>\"`)."
+  @spec subscribe(String.t()) :: :ok | {:error, term()}
+  def subscribe(preset_id), do: RuneshareWeb.Endpoint.subscribe("#{@topic}:#{preset_id}")
+
+  @doc "Undoes `subscribe/1`."
+  @spec unsubscribe(String.t()) :: :ok
+  def unsubscribe(preset_id), do: RuneshareWeb.Endpoint.unsubscribe("#{@topic}:#{preset_id}")
 end

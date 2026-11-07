@@ -14,6 +14,7 @@ defmodule Runeshare.Sharing.Preset do
     simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   @kinds [:watchdog_alarm, :tile_marker]
+  @topic "presets"
 
   postgres do
     table "presets"
@@ -226,7 +227,7 @@ defmodule Runeshare.Sharing.Preset do
   # Topics: "presets:shared:<kind>", "presets:deleted:<kind>", "presets:<id>".
   pub_sub do
     module RuneshareWeb.Endpoint
-    prefix "presets"
+    prefix @topic
     publish :share, ["shared", :kind]
     publish :destroy, ["deleted", :kind]
     publish :hide, ["deleted", :kind]
@@ -358,4 +359,21 @@ defmodule Runeshare.Sharing.Preset do
   @doc "Every supported preset kind."
   @spec kinds() :: list(atom())
   def kinds, do: @kinds
+
+  @doc """
+  Subscribes the caller to presets of `kind` being shared or unhidden
+  (`"presets:shared:<kind>"`) and deleted or hidden (`"presets:deleted:<kind>"`).
+  """
+  @spec subscribe_to_kind(atom()) :: :ok
+  def subscribe_to_kind(kind) when kind in @kinds do
+    Enum.each(~w(shared deleted), &RuneshareWeb.Endpoint.subscribe("#{@topic}:#{&1}:#{kind}"))
+  end
+
+  @doc "Subscribes the caller to edits, hiding and deletion of one preset (`\"presets:<id>\"`)."
+  @spec subscribe(String.t()) :: :ok | {:error, term()}
+  def subscribe(id), do: RuneshareWeb.Endpoint.subscribe("#{@topic}:#{id}")
+
+  @doc "Undoes `subscribe/1`."
+  @spec unsubscribe(String.t()) :: :ok
+  def unsubscribe(id), do: RuneshareWeb.Endpoint.unsubscribe("#{@topic}:#{id}")
 end

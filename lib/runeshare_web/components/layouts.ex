@@ -160,6 +160,7 @@ defmodule RuneshareWeb.Layouts do
       phx-click={JS.dispatch("phx:set-theme")}
       data-phx-theme="light"
       aria-label="Switch to light theme"
+      title="Switch to light theme"
     >
       <.icon name="hero-sun" class="size-5" />
     </button>
@@ -169,6 +170,7 @@ defmodule RuneshareWeb.Layouts do
       phx-click={JS.dispatch("phx:set-theme")}
       data-phx-theme="dark"
       aria-label="Switch to dark theme"
+      title="Switch to dark theme"
     >
       <.icon name="hero-moon" class="size-5" />
     </button>

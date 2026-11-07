@@ -291,4 +291,77 @@ defmodule RuneshareWeb.PresetLiveTest do
       |> refute_has("#duplicate-warning")
     end
   end
+
+  describe "listing columns" do
+    test "the listing has no import string column; each row keeps its copy button", %{
+      conn: conn
+    } do
+      preset = share_preset!(register_user!())
+
+      conn
+      |> visit(~p"/watchdog")
+      |> assert_has("#presets-body tr", text: preset.title, timeout: 2_000)
+      |> refute_has("#presets th", text: "String")
+      |> refute_has("#presets-body td", text: "schemaVersion")
+      |> assert_has("#copy-#{preset.id}[title='Copy the import string']")
+    end
+  end
+
+  describe "page size" do
+    # Twelve presets from two authors (the share rate limit is ten an hour each).
+    defp share_twelve! do
+      [first, second] = [register_user!(), register_user!()]
+
+      for n <- 1..12,
+          do: share_preset!(if(n <= 6, do: first, else: second), %{title: "Alarm #{n}"})
+    end
+
+    defp row_count(session, count) do
+      session
+      |> assert_has("#presets-body tr[data-phx-stream]", count: count, timeout: 2_000)
+    end
+
+    test "lists ten a page by default", %{conn: conn} do
+      share_twelve!()
+
+      conn
+      |> visit(~p"/watchdog")
+      |> row_count(10)
+      |> assert_has("#per-10[aria-current='true']")
+      |> assert_has("nav[aria-label='Pagination']", text: "1 / 2")
+      |> click_link("Next")
+      |> assert_path(~p"/watchdog", query_params: %{offset: "10"})
+      |> row_count(2)
+    end
+
+    test "picking a size changes the rows per page and starts at page one", %{conn: conn} do
+      share_twelve!()
+
+      conn
+      |> visit(~p"/watchdog?offset=10")
+      |> row_count(2)
+      |> click_link("#per-5", "5")
+      |> assert_path(~p"/watchdog", query_params: %{per: "5"})
+      |> row_count(5)
+      |> assert_has("nav[aria-label='Pagination']", text: "1 / 3")
+      |> click_link("#sort-most_liked", "Most liked")
+      |> assert_path(~p"/watchdog", query_params: %{per: "5", sort: "most_liked"})
+      |> row_count(5)
+    end
+
+    test "offers 5, 10, 15, 20 and 25", %{conn: conn} do
+      share_twelve!()
+      session = conn |> visit(~p"/watchdog") |> row_count(10)
+
+      for size <- [5, 10, 15, 20, 25], do: assert_has(session, "#per-#{size}", text: "#{size}")
+    end
+
+    test "an unknown size falls back to ten", %{conn: conn} do
+      share_twelve!()
+
+      conn
+      |> visit(~p"/watchdog?per=1000")
+      |> row_count(10)
+    end
+  end
 end

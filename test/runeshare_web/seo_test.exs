@@ -103,4 +103,60 @@ defmodule RuneshareWeb.SeoTest do
       assert html =~ "RS3 Watchdog alarms &amp; tile markers · RuneShare"
     end
   end
+
+  describe "structured data" do
+    defp json_ld(html) do
+      html
+      |> LazyHTML.from_document()
+      |> LazyHTML.query(~s(script[type="application/ld+json"]))
+      |> LazyHTML.text()
+      |> JSON.decode!()
+    end
+
+    test "a preset page describes the preset and its breadcrumb trail", %{conn: conn} do
+      author = register_user!(name: "Zezima")
+      preset = share_preset!(author, %{title: "Boss </script><b>x</b> & co", tags: ["vorago"]})
+      html = conn |> get(~p"/presets/#{preset}") |> html_response(200)
+
+      refute html =~ "</script><b>"
+
+      [work, crumbs] = json_ld(html)
+
+      assert %{
+               "@type" => "CreativeWork",
+               "name" => "Boss </script><b>x</b> & co",
+               "keywords" => "vorago",
+               "author" => %{"name" => "Zezima"}
+             } = work
+
+      assert work["url"] == url(~p"/presets/#{preset}")
+
+      assert Enum.map(crumbs["itemListElement"], & &1["name"]) ==
+               ["Home", "Watchdog alarms", "Boss </script><b>x</b> & co"]
+    end
+
+    test "a tag listing carries its breadcrumb trail", %{conn: conn} do
+      html = conn |> get(~p"/watchdog?tag=vorago") |> html_response(200)
+
+      assert [%{"@type" => "BreadcrumbList", "itemListElement" => items}] = json_ld(html)
+      assert Enum.map(items, & &1["name"]) == ["Home", "Watchdog alarms", "vorago"]
+    end
+
+    test "pages without structured data render none", %{conn: conn} do
+      refute conn |> get(~p"/") |> html_response(200) =~ "application/ld+json"
+    end
+  end
+
+  describe "favicon" do
+    test "pages link the icons and the files are served", %{conn: conn} do
+      html = conn |> get(~p"/") |> html_response(200)
+
+      assert html =~ ~s(<link rel="icon" href="/favicon.svg" type="image/svg+xml")
+      assert html =~ ~s(<link rel="apple-touch-icon" href="/apple-touch-icon.png")
+
+      for path <- ~w(/favicon.ico /favicon.svg /apple-touch-icon.png) do
+        assert build_conn() |> get(path) |> response(200)
+      end
+    end
+  end
 end

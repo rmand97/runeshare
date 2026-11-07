@@ -5,6 +5,8 @@ defmodule Runeshare.Sharing do
 
   use Ash.Domain, otp_app: :runeshare, extensions: [AshAdmin.Domain, AshPhoenix]
 
+  alias Runeshare.Sharing.{Comment, Like, Preset}
+
   admin do
     show? true
   end
@@ -72,4 +74,26 @@ defmodule Runeshare.Sharing do
       define :record_copy, action: :record, args: [:preset_id, :visitor]
     end
   end
+
+  # Real-time updates. Each resource owns its topics (beside its `pub_sub` block);
+  # these are what the web layer subscribes through. Broadcasts carry no loads:
+  # re-fetch through a code interface.
+
+  @doc "Live updates for a listing of `kind`: presets shared, unhidden, deleted or hidden."
+  @spec subscribe_to_kind(atom()) :: :ok
+  defdelegate subscribe_to_kind(kind), to: Preset
+
+  @doc "Live updates for one preset's page: the preset itself, its likes and its comments."
+  @spec subscribe_to_preset(String.t()) :: :ok
+  def subscribe_to_preset(preset_id) do
+    Enum.each(preset_topics(), & &1.subscribe(preset_id))
+  end
+
+  @doc "Undoes `subscribe_to_preset/1`."
+  @spec unsubscribe_from_preset(String.t()) :: :ok
+  def unsubscribe_from_preset(preset_id) do
+    Enum.each(preset_topics(), & &1.unsubscribe(preset_id))
+  end
+
+  defp preset_topics, do: [Preset, Like, Comment]
 end

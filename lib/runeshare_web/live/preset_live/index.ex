@@ -14,20 +14,20 @@ defmodule RuneshareWeb.PresetLive.Index do
   alias Runeshare.Sharing
   alias Runeshare.Sharing.Preset.Changes.NormalizeTags
 
-  @page_size 24
+  @page_sizes [5, 10, 15, 20, 25]
+  @default_page_size 10
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
     kind = socket.assigns.live_action
 
     if connected?(socket) do
-      RuneshareWeb.Endpoint.subscribe("presets:shared:#{kind}")
-      RuneshareWeb.Endpoint.subscribe("presets:deleted:#{kind}")
+      Sharing.subscribe_to_kind(kind)
     end
 
     socket =
       socket
-      |> assign(kind: kind, page_size: @page_size)
+      |> assign(kind: kind, page_sizes: @page_sizes)
       |> assign(page: AsyncResult.loading(), copied: MapSet.new())
       |> stream(:presets, [])
 
@@ -39,14 +39,15 @@ defmodule RuneshareWeb.PresetLive.Index do
     search = params |> Map.get("q", "") |> String.trim()
     offset = params |> Map.get("offset", "0") |> parse_offset()
     sort = parse_sort(params["sort"])
+    per = parse_per(params["per"])
     kind = socket.assigns.kind
     # `?tag=Zammy` finds presets tagged "zamorak", the same way saving normalises tags.
     tag = params |> Map.get("tag", "") |> List.wrap() |> NormalizeTags.normalize() |> Enum.join()
 
     socket =
       socket
-      |> assign(search: search, sort: sort, offset: offset, tag: tag)
-      |> assign(filters: %{kind: kind, q: search, sort: sort, tag: tag, offset: offset})
+      |> assign(search: search, sort: sort, offset: offset, tag: tag, page_size: per)
+      |> assign(filters: %{kind: kind, q: search, sort: sort, tag: tag, offset: offset, per: per})
       |> assign_seo()
       |> load_page()
 
@@ -82,7 +83,7 @@ defmodule RuneshareWeb.PresetLive.Index do
   end
 
   def handle_event("copied", %{"id" => id}, socket) do
-    {:noreply, track_copy(socket, id)}
+    {:noreply, track_copy(socket, id, fn _preset -> :presets end)}
   end
 
   # A preset of this kind was shared or deleted somewhere: reload the current page.
@@ -155,7 +156,7 @@ defmodule RuneshareWeb.PresetLive.Index do
               id={"sort-#{sort}"}
               patch={list_path(@filters, sort: sort, offset: 0)}
               aria-current={if sort == @sort, do: "true"}
-              class={["btn join-item btn-sm", if(sort == @sort, do: "btn-primary", else: "btn-ghost")]}
+              class={["btn join-item btn-sm", sort == @sort && "btn-primary"]}
             >
               {label}
             </.link>
@@ -194,13 +195,12 @@ defmodule RuneshareWeb.PresetLive.Index do
                 <th class="hidden md:table-cell">Author</th>
                 <th class="hidden sm:table-cell">Updated</th>
                 <th class="hidden sm:table-cell">Activity</th>
-                <th class="hidden xl:table-cell">String</th>
                 <th class="w-0 text-right">Copy</th>
               </tr>
             </thead>
             <tbody id="presets-body" phx-update="stream">
               <tr id="presets-empty" class="hidden only:table-row">
-                <td colspan="6" class="py-6 text-center text-sm text-base-content/70">
+                <td colspan="5" class="py-6 text-center text-sm text-base-content/70">
                   No presets found.
                 </td>
               </tr>
@@ -259,9 +259,6 @@ defmodule RuneshareWeb.PresetLive.Index do
                 <td class="hidden whitespace-nowrap sm:table-cell">
                   <.counts preset={preset} />
                 </td>
-                <td class="hidden max-w-32 truncate font-mono text-[11px] text-base-content/60 xl:table-cell">
-                  {preset.content}
-                </td>
                 <td class="text-right">
                   <.copy_button id={"copy-#{preset.id}"} content={preset.content} track={preset.id} />
                 </td>
@@ -272,26 +269,47 @@ defmodule RuneshareWeb.PresetLive.Index do
       </div>
 
       <.pagination
-        :if={@page.ok? and @page.result.count > @page_size}
+        :if={@page.ok? and @page.result.count > hd(@page_sizes)}
         meta={@page.result}
         filters={@filters}
         page_size={@page_size}
+        page_sizes={@page_sizes}
       />
     </Layouts.app>
     """
   end
 
   attr :meta, :map, required: true
-  attr :filters, :map, required: true, doc: "current `kind`, `q`, `sort`, `tag` and `offset`"
+
+  attr :filters, :map,
+    required: true,
+    doc: "current `kind`, `q`, `sort`, `tag`, `offset` and `per`"
+
   attr :page_size, :integer, required: true
+  attr :page_sizes, :list, required: true
 
   defp pagination(assigns) do
     ~H"""
-    <div class="flex items-center justify-between gap-2 text-xs">
+    <div class="flex flex-wrap items-center justify-center gap-2 text-xs sm:justify-between">
       <span class="hidden text-base-content/65 sm:inline">
         Showing {@meta.offset + 1}–{@meta.offset + @meta.shown} of {@meta.count}
       </span>
-      <nav class="join mx-auto sm:mx-0" aria-label="Pagination">
+      <nav id="page-size" class="flex items-center gap-2" aria-label="Presets per page">
+        <span class="text-base-content/65">Per page</span>
+        <div class="join">
+          <.link
+            :for={size <- @page_sizes}
+            id={"per-#{size}"}
+            patch={list_path(@filters, per: size, offset: 0)}
+            aria-current={if size == @page_size, do: "true"}
+            title={"Show #{size} presets per page"}
+            class={["btn join-item font-mono btn-sm", size == @page_size && "btn-primary"]}
+          >
+            {size}
+          </.link>
+        </div>
+      </nav>
+      <nav class="join" aria-label="Pagination">
         <.link
           patch={list_path(@filters, offset: max(@meta.offset - @page_size, 0))}
           class={["btn join-item btn-sm", @meta.offset == 0 && "btn-disabled"]}
@@ -314,13 +332,15 @@ defmodule RuneshareWeb.PresetLive.Index do
 
   # Live inserts/deletes only make sense where newest-first order holds.
   defp load_page(socket) do
-    %{kind: kind, search: search, sort: sort, offset: offset, tag: tag} = socket.assigns
+    %{kind: kind, search: search, sort: sort, offset: offset, tag: tag, page_size: per} =
+      socket.assigns
+
     filters = %{search: blank_to_nil(search), sort: sort, tag: blank_to_nil(tag)}
 
     socket
     |> assign(page: AsyncResult.loading(socket.assigns.page))
     |> start_async(:page, fn ->
-      Sharing.list_presets!(kind, filters, page: [limit: @page_size, offset: offset, count: true])
+      Sharing.list_presets!(kind, filters, page: [limit: per, offset: offset, count: true])
     end)
   end
 
@@ -331,9 +351,13 @@ defmodule RuneshareWeb.PresetLive.Index do
     title = if tag == "", do: heading, else: "#{tag} #{heading}"
     canonical = list_path(%{kind: kind, tag: tag}, [])
 
+    tag_crumbs =
+      if tag == "", do: [], else: [{tag, unverified_url(RuneshareWeb.Endpoint, canonical)}]
+
     assign(socket,
       page_title: title,
       noindex: search != "",
+      json_ld: [RuneshareWeb.StructuredData.breadcrumbs(kind, tag_crumbs)],
       og: %{
         title: "RS3 #{title}",
         description: "#{seo_description(kind)}#{tag_suffix(tag)}",
@@ -359,7 +383,9 @@ defmodule RuneshareWeb.PresetLive.Index do
       filters
       |> Map.delete(:kind)
       |> Map.merge(Map.new(changes))
-      |> Map.reject(fn {_key, value} -> value in ["", 0, :newest] end)
+      |> Map.reject(fn {key, value} ->
+        value in ["", :newest] or {key, value} in [offset: 0, per: @default_page_size]
+      end)
 
     kind_path(kind) <> if(params == %{}, do: "", else: "?" <> URI.encode_query(params))
   end
@@ -370,6 +396,13 @@ defmodule RuneshareWeb.PresetLive.Index do
   defp parse_sort("most_liked"), do: :most_liked
   defp parse_sort("most_copied"), do: :most_copied
   defp parse_sort(_sort), do: :newest
+
+  defp parse_per(raw) do
+    case Integer.parse(raw || "") do
+      {per, ""} when per in @page_sizes -> per
+      _invalid -> @default_page_size
+    end
+  end
 
   defp parse_offset(raw) do
     case Integer.parse(raw) do

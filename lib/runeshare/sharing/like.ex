@@ -58,9 +58,11 @@ defmodule Runeshare.Sharing.Like do
     end
   end
 
+  @topic "likes"
+
   pub_sub do
     module RuneshareWeb.Endpoint
-    prefix "likes"
+    prefix @topic
     publish_all :create, [:preset_id]
     publish_all :destroy, [:preset_id]
   end
@@ -85,4 +87,12 @@ defmodule Runeshare.Sharing.Like do
   identities do
     identity :unique_like, [:preset_id, :user_id]
   end
+
+  @doc "Subscribes the caller to likes and unlikes on one preset (`\"likes:<preset_id>\"`)."
+  @spec subscribe(String.t()) :: :ok | {:error, term()}
+  def subscribe(preset_id), do: RuneshareWeb.Endpoint.subscribe("#{@topic}:#{preset_id}")
+
+  @doc "Undoes `subscribe/1`."
+  @spec unsubscribe(String.t()) :: :ok
+  def unsubscribe(preset_id), do: RuneshareWeb.Endpoint.unsubscribe("#{@topic}:#{preset_id}")
 end

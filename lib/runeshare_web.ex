@@ -17,7 +17,7 @@ defmodule RuneshareWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico)
+  def static_paths, do: ~w(assets fonts images favicon.ico favicon.svg apple-touch-icon.png)
 
   def router do
     quote do

@@ -368,4 +368,24 @@ defmodule RuneshareWeb.PresetShowTest do
     [content] = document |> LazyHTML.query(selector) |> LazyHTML.attribute("content")
     content
   end
+
+  describe "hover text" do
+    test "the action buttons say what they do", %{conn: conn} do
+      preset = share_preset!(register_user!())
+
+      conn
+      |> visit(~p"/presets/#{preset}")
+      |> assert_has("#copy-preset[title='Copy the import string']")
+      |> assert_has("#share-preset[title='Copy a link to this preset']")
+      |> assert_has("a[title='Sign in to like this preset']")
+
+      build_conn()
+      |> log_in_user(register_user!())
+      |> visit(~p"/presets/#{preset}")
+      |> assert_has("#like-button[title='Like this preset']")
+      |> click_button("#like-button", "Like")
+      |> assert_has("#like-button[title='Remove your like']")
+      |> assert_has("button[title='Report this preset to the moderators']")
+    end
+  end
 end

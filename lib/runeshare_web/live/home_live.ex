@@ -11,17 +11,17 @@ defmodule RuneshareWeb.HomeLive do
   alias Phoenix.Socket.Broadcast
   alias Runeshare.Sharing
 
-  @newest 4
+  @newest 5
+  # The client enforces a stream's `limit` over all children of the list, and the
+  # list also holds its "Nothing shared yet" placeholder: one extra slot for that.
+  @stream_limit @newest + 1
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
     kinds = Sharing.Preset.kinds()
 
     if connected?(socket) do
-      for kind <- kinds do
-        RuneshareWeb.Endpoint.subscribe("presets:shared:#{kind}")
-        RuneshareWeb.Endpoint.subscribe("presets:deleted:#{kind}")
-      end
+      Enum.each(kinds, &Sharing.subscribe_to_kind/1)
     end
 
     # Each kind's newest shares stream under the kind's own name (`@streams.tile_marker`).
@@ -31,7 +31,8 @@ defmodule RuneshareWeb.HomeLive do
         assign(socket, page_title: "RS3 Watchdog alarms & tile markers", copied: MapSet.new()),
         fn kind, socket ->
           stream_async(socket, kind, fn ->
-            {:ok, Sharing.list_presets!(kind, page: [limit: @newest]).results, limit: @newest}
+            {:ok, Sharing.list_presets!(kind, page: [limit: @newest]).results,
+             limit: @stream_limit}
           end)
         end
       )
@@ -41,7 +42,7 @@ defmodule RuneshareWeb.HomeLive do
 
   @impl Phoenix.LiveView
   def handle_event("copied", %{"id" => id}, socket) do
-    {:noreply, track_copy(socket, id)}
+    {:noreply, track_copy(socket, id, & &1.kind)}
   end
 
   @impl Phoenix.LiveView
@@ -52,7 +53,7 @@ defmodule RuneshareWeb.HomeLive do
       {:ok, preset} ->
         socket =
           socket
-          |> stream_insert(preset.kind, preset, at: 0, limit: @newest)
+          |> stream_insert(preset.kind, preset, at: 0, limit: @stream_limit)
           |> reload_stats()
 
         {:noreply, socket}
@@ -159,7 +160,7 @@ defmodule RuneshareWeb.HomeLive do
         </.link>
       </:actions>
       <.async_result assign={@result}>
-        <:loading><.skeleton_rows rows={4} /></:loading>
+        <:loading><.skeleton_rows rows={5} /></:loading>
         <:failed>
           <p class="px-3 py-4 text-sm text-error">Couldn't load presets.</p>
         </:failed>
@@ -194,9 +195,6 @@ defmodule RuneshareWeb.HomeLive do
                 class="mt-0.5"
               />
             </div>
-            <span class="hidden w-28 truncate font-mono text-[11px] text-base-content/60 sm:block">
-              {preset.content}
-            </span>
             <.copy_button id={"copy-#{preset.id}"} content={preset.content} track={preset.id} />
           </li>
         </ul>

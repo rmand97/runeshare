@@ -153,6 +153,7 @@ defmodule RuneshareWeb.PresetDetailComponents do
             phx-click="delete_comment"
             phx-value-id={@comment.id}
             data-confirm="Delete this comment?"
+            title="Delete comment"
             class="btn ml-auto btn-square btn-ghost text-base-content/65 btn-xs focus-visible:text-error sm:hover:text-error"
           >
             <.icon name="hero-trash" class="size-3.5" />
