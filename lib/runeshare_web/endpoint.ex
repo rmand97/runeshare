@@ -29,6 +29,9 @@ defmodule RuneshareWeb.Endpoint do
     from: :runeshare,
     gzip: not code_reloading?,
     only: RuneshareWeb.static_paths(),
+    # Root-level icons are linked by digested name in prod ("favicon-<hash>.ico"),
+    # which `only` (exact first segment) wouldn't match.
+    only_matching: ~w(favicon apple-touch-icon),
     raise_on_missing_only: code_reloading?
 
   if Mix.env() == :dev do
