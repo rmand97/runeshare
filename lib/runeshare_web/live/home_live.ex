@@ -26,12 +26,15 @@ defmodule RuneshareWeb.HomeLive do
 
     # Each kind's newest shares stream under the kind's own name (`@streams.tile_marker`).
     socket =
-      Enum.reduce(kinds, assign(socket, page_title: "Home", copied: MapSet.new()), fn kind,
-                                                                                      socket ->
-        stream_async(socket, kind, fn ->
-          {:ok, Sharing.list_presets!(kind, page: [limit: @newest]).results, limit: @newest}
-        end)
-      end)
+      Enum.reduce(
+        kinds,
+        assign(socket, page_title: "RS3 Watchdog alarms & tile markers", copied: MapSet.new()),
+        fn kind, socket ->
+          stream_async(socket, kind, fn ->
+            {:ok, Sharing.list_presets!(kind, page: [limit: @newest]).results, limit: @newest}
+          end)
+        end
+      )
 
     {:ok, reload_stats(socket)}
   end

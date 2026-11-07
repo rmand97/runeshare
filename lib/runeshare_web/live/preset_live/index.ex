@@ -27,7 +27,7 @@ defmodule RuneshareWeb.PresetLive.Index do
 
     socket =
       socket
-      |> assign(kind: kind, page_title: kind_heading(kind), page_size: @page_size)
+      |> assign(kind: kind, page_size: @page_size)
       |> assign(page: AsyncResult.loading(), copied: MapSet.new())
       |> stream(:presets, [])
 
@@ -47,6 +47,7 @@ defmodule RuneshareWeb.PresetLive.Index do
       socket
       |> assign(search: search, sort: sort, offset: offset, tag: tag)
       |> assign(filters: %{kind: kind, q: search, sort: sort, tag: tag, offset: offset})
+      |> assign_seo()
       |> load_page()
 
     {:noreply, socket}
@@ -322,6 +323,35 @@ defmodule RuneshareWeb.PresetLive.Index do
       Sharing.list_presets!(kind, filters, page: [limit: @page_size, offset: offset, count: true])
     end)
   end
+
+  # Tag pages are landing pages of their own; sort and paging variants point at
+  # page one, and search results stay out of the index.
+  defp assign_seo(%{assigns: %{kind: kind, tag: tag, search: search}} = socket) do
+    heading = kind_heading(kind)
+    title = if tag == "", do: heading, else: "#{tag} #{heading}"
+    canonical = list_path(%{kind: kind, tag: tag}, [])
+
+    assign(socket,
+      page_title: title,
+      noindex: search != "",
+      og: %{
+        title: "RS3 #{title}",
+        description: "#{seo_description(kind)}#{tag_suffix(tag)}",
+        url: unverified_url(RuneshareWeb.Endpoint, canonical)
+      }
+    )
+  end
+
+  defp seo_description(:watchdog_alarm),
+    do:
+      "Browse RuneScape 3 Watchdog alarm strings shared by players. Copy an import string and paste it into Watchdog"
+
+  defp seo_description(:tile_marker),
+    do:
+      "Browse RuneScape 3 tile marker presets shared by players. Copy a TM2 import string and paste it into your tile marker plugin"
+
+  defp tag_suffix(""), do: "."
+  defp tag_suffix(tag), do: " — tagged #{tag}."
 
   # The listing URL for the current `filters`, with `changes` applied.
   defp list_path(%{kind: kind} = filters, changes) do

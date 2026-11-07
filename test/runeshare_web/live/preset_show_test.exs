@@ -197,15 +197,15 @@ defmodule RuneshareWeb.PresetShowTest do
       head = conn |> get(~p"/presets/#{preset}") |> html_response(200) |> LazyHTML.from_document()
 
       assert meta(head, "meta[property='og:title']") ==
-               "Vorago rotation timer — Watchdog alarm v1"
+               "Vorago rotation timer — RS3 Watchdog alarm"
 
       assert meta(head, "meta[property='og:description']") == "Pings before each rotation."
       assert meta(head, "meta[property='og:url']") =~ ~r"^http.*/presets/#{preset.id}$"
       assert meta(head, "meta[name='twitter:card']") == "summary"
     end
 
-    test "other pages fall back to site defaults", %{conn: conn} do
-      head = conn |> get(~p"/watchdog") |> html_response(200) |> LazyHTML.from_document()
+    test "pages without their own tags fall back to site defaults", %{conn: conn} do
+      head = conn |> get(~p"/sign-in") |> html_response(200) |> LazyHTML.from_document()
 
       assert meta(head, "meta[property='og:title']") == "RuneShare"
       assert meta(head, "meta[property='og:site_name']") == "RuneShare"

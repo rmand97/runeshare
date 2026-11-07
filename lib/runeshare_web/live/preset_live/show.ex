@@ -31,7 +31,8 @@ defmodule RuneshareWeb.PresetLive.Show do
     socket =
       socket
       |> assign(preset: preset, version: nil, copied: MapSet.new(), report_form: nil)
-      |> assign(og: og(preset))
+      # Hidden presets are only for their author and admins: keep them out of search.
+      |> assign(og: og(preset), noindex: preset.hidden)
       |> assign_comment_form()
       |> load_versions()
       |> load_comments()
@@ -567,10 +568,11 @@ defmodule RuneshareWeb.PresetLive.Show do
 
     description =
       preset.description ||
-        "#{label} by #{author_name(preset)}. Copy the import string and paste it into the plugin."
+        "RuneScape 3 #{label} by #{author_name(preset)}. Copy the import string and paste it into the plugin."
 
     %{
-      title: "#{preset.title} — #{label} v#{preset.version}",
+      type: "article",
+      title: "#{preset.title} — RS3 #{label}",
       description: truncate(description, @og_description_length),
       url: url(~p"/presets/#{preset}"),
       image: preset.cover_image_url

@@ -4,24 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <meta
-      name="description"
-      content={
-        assigns[:og][:description] ||
-          "Share and copy RuneScape 3 Watchdog alarm strings and tile marker presets."
-      }
-    />
+    <meta name="description" content={assigns[:og][:description] || default_description()} />
+    <meta :if={assigns[:noindex]} name="robots" content="noindex" />
+    <link :if={!assigns[:noindex]} rel="canonical" href={canonical_url(assigns)} />
     <meta property="og:site_name" content="RuneShare" />
-    <meta property="og:type" content={if assigns[:og], do: "article", else: "website"} />
-    <meta property="og:title" content={assigns[:og][:title] || "RuneShare"} />
+    <meta property="og:type" content={assigns[:og][:type] || "website"} />
+    <meta
+      property="og:title"
+      content={assigns[:og][:title] || assigns[:page_title] || "RuneShare"}
+    />
     <meta
       property="og:description"
-      content={
-        assigns[:og][:description] ||
-          "Share and copy RuneScape 3 Watchdog alarm strings and tile marker presets."
-      }
+      content={assigns[:og][:description] || default_description()}
     />
-    <meta property="og:url" content={assigns[:og][:url] || Phoenix.Controller.current_url(@conn)} />
+    <meta property="og:url" content={canonical_url(assigns)} />
     <meta :if={assigns[:og][:image]} property="og:image" content={assigns[:og][:image]} />
     <meta
       name="twitter:card"

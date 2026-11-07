@@ -12,6 +12,20 @@ defmodule RuneshareWeb.Layouts do
   # and other static content.
   embed_templates "layouts/*"
 
+  @doc "Meta description of pages that set none of their own."
+  @spec default_description() :: String.t()
+  def default_description,
+    do:
+      "Share and copy RuneScape 3 (RS3) Watchdog alarm strings and tile marker presets made by other players."
+
+  @doc """
+  Canonical URL of the page being rendered: the page's `og.url` if it set one,
+  else the requested URL without its query string.
+  """
+  @spec canonical_url(map()) :: String.t()
+  def canonical_url(assigns),
+    do: assigns[:og][:url] || Phoenix.Controller.current_url(assigns.conn, %{})
+
   @doc """
   Page shell: top navigation, main content, footer and toasts (flashes included).
 

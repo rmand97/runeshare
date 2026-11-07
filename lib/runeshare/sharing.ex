@@ -14,6 +14,7 @@ defmodule Runeshare.Sharing do
       # Optional filters go in a params map: list_presets!(kind, %{search:, sort:, tag:}, opts).
       define :list_presets, action: :list, args: [:kind]
 
+      define :list_sitemap_presets, action: :sitemap
       define :list_liked_presets, action: :liked
       define :list_presets_by_author, action: :by_author, args: [:author_id]
       define :find_duplicate_presets, action: :duplicates, args: [:kind, :content]

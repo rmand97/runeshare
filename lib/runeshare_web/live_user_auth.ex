@@ -18,9 +18,10 @@ defmodule RuneshareWeb.LiveUserAuth do
     {:cont, assign(socket, :visitor, visitor(socket.assigns.current_user, session))}
   end
 
+  # Pages behind sign-in (and the sign-in page itself) are kept out of search engines.
   def on_mount(:live_user_required, _params, _session, socket) do
     if socket.assigns[:current_user] do
-      {:cont, tag_logs(socket)}
+      {:cont, socket |> assign(:noindex, true) |> tag_logs()}
     else
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/sign-in")}
     end
@@ -30,7 +31,7 @@ defmodule RuneshareWeb.LiveUserAuth do
     if socket.assigns[:current_user] do
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}
     else
-      {:cont, socket |> assign(:current_user, nil) |> tag_logs()}
+      {:cont, socket |> assign(current_user: nil, noindex: true) |> tag_logs()}
     end
   end
 

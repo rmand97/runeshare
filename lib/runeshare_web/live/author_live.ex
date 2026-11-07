@@ -23,6 +23,15 @@ defmodule RuneshareWeb.AuthorLive do
     socket =
       socket
       |> assign(page_title: author.name, author: author)
+      |> assign(
+        og: %{
+          type: "profile",
+          title: "#{author.name} — RuneShare",
+          description:
+            "RuneScape 3 Watchdog alarms and tile marker presets shared by #{author.name}.",
+          url: url(~p"/u/#{author}")
+        }
+      )
       |> Paging.init(:presets)
       |> Paging.load(:presets, fetch(author_id, viewer))
 

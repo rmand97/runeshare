@@ -20,6 +20,12 @@ defmodule RuneshareWeb.Router do
     plug RuneshareWeb.Plugs.LogMetadata
   end
 
+  # Crawler files: no session, no CSRF, served at the site root.
+  scope "/", RuneshareWeb do
+    get "/robots.txt", SeoController, :robots
+    get "/sitemap.xml", SeoController, :sitemap
+  end
+
   scope "/", RuneshareWeb do
     pipe_through :browser
 

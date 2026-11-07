@@ -76,6 +76,12 @@ defmodule Runeshare.Sharing.Preset do
       pagination offset?: true, default_limit: 24, countable: true, required?: false
     end
 
+    read :sitemap do
+      description "Every preset the actor may see, newest change first — for sitemap.xml."
+
+      prepare build(sort: [updated_at: :desc])
+    end
+
     read :mine do
       description "Presets shared by the current user, newest first."
       filter expr(author_id == ^actor(:id))
