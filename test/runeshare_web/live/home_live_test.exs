@@ -30,11 +30,15 @@ defmodule RuneshareWeb.HomeLiveTest do
     |> refute_has("#newest-watchdog_alarm-list li", text: "Alarm 1")
   end
 
-  test "the footer links to the source code", %{conn: conn} do
+  test "the footer links to the source code and the issue tracker", %{conn: conn} do
     conn
     |> visit(~p"/")
     |> assert_has("footer a#footer-source[href='https://github.com/rmand97/runeshare']",
       text: "Source on GitHub"
+    )
+    |> assert_has(
+      "footer a#footer-issues[href='https://github.com/rmand97/runeshare/issues/new/choose']",
+      text: "Report a problem"
     )
   end
 end

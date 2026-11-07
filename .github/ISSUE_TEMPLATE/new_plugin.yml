@@ -1,0 +1,30 @@
+name: Support another plugin
+description: Ask RuneShare to host import strings for another RuneScape 3 plugin.
+labels: [enhancement, new plugin]
+body:
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin name
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Where can it be found?
+      description: A link to the plugin, its page or its source.
+    validations:
+      required: true
+  - type: textarea
+    id: format
+    attributes:
+      label: Import / export format
+      description: How does the plugin export and import a setup? Paste a sample export string if you can (nothing private in it).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What would players share?
+      description: For example, setups per boss, skilling routes, UI layouts.

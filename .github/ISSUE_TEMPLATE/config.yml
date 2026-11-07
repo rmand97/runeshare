@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: A preset is broken, spam or offensive
+    url: https://runeshare.dk
+    about: Open the preset on RuneShare and use its Report button. Moderators see those reports directly.
+  - name: Security problem
+    url: https://github.com/rmand97/runeshare/security/advisories/new
+    about: Please report security issues privately here, not as a public issue.

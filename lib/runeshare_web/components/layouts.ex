@@ -144,6 +144,16 @@ defmodule RuneshareWeb.Layouts do
       >
         <.icon name="hero-code-bracket" class="size-3.5" /> Source on GitHub
       </a>
+      <span aria-hidden="true">·</span>
+      <a
+        id="footer-issues"
+        href="https://github.com/rmand97/runeshare/issues/new/choose"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
+      >
+        <.icon name="hero-chat-bubble-left-ellipsis" class="size-3.5" /> Report a problem
+      </a>
     </footer>
 
     <LiveToast.toast_group

@@ -1,0 +1,58 @@
+name: Something is broken
+description: The site shows an error, a button doesn't work, or something looks wrong.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time! A broken or offensive **preset** is faster to handle with the Report button on its page.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, and what went wrong?
+      placeholder: I clicked "Copy string" on a tile marker preset and nothing was copied.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Page
+      description: The address of the page, if it happens on a specific one.
+      placeholder: https://runeshare.dk/presets/...
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - Desktop / laptop
+        - Phone
+        - Tablet
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: Chrome, Firefox, Safari, Edge...
+  - type: dropdown
+    id: signed_in
+    attributes:
+      label: Were you signed in?
+      options:
+        - "No"
+        - Yes, with Google
+        - Yes, with GitHub
+        - Yes, with Discord
+        - Yes, with Twitch
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag an image in here if it helps. Don't include your email or anything private.

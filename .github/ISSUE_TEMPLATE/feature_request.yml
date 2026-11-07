@@ -1,0 +1,29 @@
+name: Idea or improvement
+description: Something RuneShare could do better, or something new it should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: Describe what you're trying to do, not only the solution.
+      placeholder: I want to find all presets for a boss in one place, across both plugins.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could it work?
+      description: Optional — any idea for how it could look or behave.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Watchdog alarms
+        - Tile marker presets
+        - Browsing, search and tags
+        - Sharing and editing
+        - Likes and comments
+        - Account and sign-in
+        - Something else

@@ -117,7 +117,7 @@ if config_env() == :prod do
     ]
 end
 
-# Comma-separated Google account emails that get the admin (moderator) role on sign-in.
+# Comma-separated emails that get the admin (moderator) role on sign-in (any provider).
 if config_env() in [:dev, :prod] do
   config :runeshare,
          :admin_emails,
