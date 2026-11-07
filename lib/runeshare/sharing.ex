@@ -126,6 +126,11 @@ defmodule Runeshare.Sharing do
   @spec watchdog_alerts(String.t()) :: list(map())
   defdelegate watchdog_alerts(content), to: ImportString, as: :watchdog_summary
 
+  @doc "The plugin and schema version of a Watchdog export (`nil` if it isn't one)."
+  @spec watchdog_versions(String.t()) ::
+          %{plugin_version: String.t() | nil, schema_version: integer()} | nil
+  defdelegate watchdog_versions(content), to: ImportString
+
   @doc "Tags as saving stores them: trimmed, lowercased, nicknames mapped, deduplicated."
   @spec normalize_tags(list(String.t())) :: list(String.t())
   defdelegate normalize_tags(tags), to: NormalizeTags, as: :normalize

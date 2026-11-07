@@ -59,6 +59,28 @@ defmodule Runeshare.Sharing.ImportString do
     end
   end
 
+  @doc """
+  The plugin and schema version a Watchdog export was made with, or `nil` when
+  `content` isn't a Watchdog export. `plugin_version` is `nil` when the export
+  doesn't say.
+
+      %{plugin_version: "1.0.0", schema_version: 1}
+  """
+  @spec watchdog_versions(String.t()) ::
+          %{plugin_version: String.t() | nil, schema_version: integer()} | nil
+  def watchdog_versions(content) do
+    case watchdog_export(content) do
+      {:ok, %{"schemaVersion" => schema} = export} ->
+        %{plugin_version: plugin_version(export["pluginVersion"]), schema_version: schema}
+
+      :error ->
+        nil
+    end
+  end
+
+  defp plugin_version(version) when is_binary(version) and version != "", do: version
+  defp plugin_version(_missing), do: nil
+
   @doc "A title taken from the export itself, or `nil` when none can be read."
   @spec suggested_title(atom(), String.t()) :: String.t() | nil
   def suggested_title(:watchdog_alarm, content), do: List.first(watchdog_names(content))
@@ -81,10 +103,18 @@ defmodule Runeshare.Sharing.ImportString do
   end
 
   defp watchdog_entries(content) do
+    case watchdog_export(content) do
+      {:ok, export} -> {:ok, export["entries"]}
+      :error -> :error
+    end
+  end
+
+  # The decoded export when `content` is a Watchdog export, else `:error`.
+  defp watchdog_export(content) do
     case JSON.decode(content) do
-      {:ok, %{"schemaVersion" => version, "entries" => [_first | _rest] = entries}}
+      {:ok, %{"schemaVersion" => version, "entries" => [_first | _rest] = entries} = export}
       when is_integer(version) ->
-        if Enum.all?(entries, &watchdog_entry?/1), do: {:ok, entries}, else: :error
+        if Enum.all?(entries, &watchdog_entry?/1), do: {:ok, export}, else: :error
 
       {:ok, _other_shape} ->
         :error

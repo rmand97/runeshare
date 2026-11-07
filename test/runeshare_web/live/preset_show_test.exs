@@ -422,4 +422,25 @@ defmodule RuneshareWeb.PresetShowTest do
       |> assert_has("button", text: "Delete")
     end
   end
+
+  describe "export versions in the details panel" do
+    test "a Watchdog preset shows its plugin and schema version; a tile marker doesn't", %{
+      conn: conn
+    } do
+      author = register_user!()
+      alarm = share_preset!(author)
+      marker = share_preset!(author, %{kind: :tile_marker})
+
+      conn
+      |> visit(~p"/presets/#{alarm}")
+      |> assert_has("dt", text: "Watchdog version")
+      |> assert_has("#details-plugin-version", text: "1.0.0")
+      |> assert_has("#details-schema-version", text: "1")
+
+      build_conn()
+      |> visit(~p"/presets/#{marker}")
+      |> refute_has("dt", text: "Watchdog version")
+      |> refute_has("#details-schema-version")
+    end
+  end
 end

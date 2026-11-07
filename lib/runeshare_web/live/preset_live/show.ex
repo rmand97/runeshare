@@ -483,6 +483,16 @@ defmodule RuneshareWeb.PresetLive.Show do
                 v{shown_number(@preset, @version)}
                 <span :if={@version} class="text-base-content/65">of v{@preset.version}</span>
               </dd>
+              <%= if @export_versions do %>
+                <dt class="text-base-content/65">Watchdog version</dt>
+                <dd id="details-plugin-version" class="font-mono">
+                  {@export_versions.plugin_version || "—"}
+                </dd>
+                <dt class="text-base-content/65">Schema version</dt>
+                <dd id="details-schema-version" class="font-mono">
+                  {@export_versions.schema_version}
+                </dd>
+              <% end %>
               <dt class="text-base-content/65">Copied</dt>
               <dd id="details-copy-count" class="font-mono">{@preset.copy_count}×</dd>
             </dl>
@@ -505,7 +515,8 @@ defmodule RuneshareWeb.PresetLive.Show do
     assign(socket,
       shown: shown,
       page_title: shown.title,
-      alerts: Sharing.watchdog_alerts(shown.content)
+      alerts: Sharing.watchdog_alerts(shown.content),
+      export_versions: Sharing.watchdog_versions(shown.content)
     )
   end
 
