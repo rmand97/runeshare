@@ -18,7 +18,7 @@ defmodule RuneshareWeb.HomeLive do
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
-    kinds = Sharing.Preset.kinds()
+    kinds = Sharing.preset_kinds()
 
     if connected?(socket) do
       Enum.each(kinds, &Sharing.subscribe_to_kind/1)
@@ -216,27 +216,9 @@ defmodule RuneshareWeb.HomeLive do
     """
   end
 
-  defp load_stats(kinds) do
-    pages =
-      Map.new(kinds, fn kind ->
-        {kind, Sharing.list_presets!(kind, page: [limit: 1, count: true])}
-      end)
-
-    last_shared =
-      pages
-      |> Map.values()
-      |> Enum.flat_map(& &1.results)
-      |> Enum.map(& &1.inserted_at)
-      |> Enum.max(DateTime, fn -> nil end)
-
-    %{counts: Map.new(pages, fn {kind, page} -> {kind, page.count} end), last_shared: last_shared}
-  end
-
   # Recounted from the database rather than adjusted per broadcast: increments and
   # decrements drift (missed or foreign messages), a recount can't. The previous
   # numbers stay on screen while it runs.
-  defp reload_stats(socket) do
-    kinds = Sharing.Preset.kinds()
-    assign_async(socket, :stats, fn -> {:ok, %{stats: load_stats(kinds)}} end)
-  end
+  defp reload_stats(socket),
+    do: assign_async(socket, :stats, fn -> {:ok, %{stats: Sharing.preset_stats!()}} end)
 end

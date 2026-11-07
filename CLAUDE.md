@@ -93,7 +93,10 @@ Google OAuth via AshAuthentication (`google` strategy, `UserIdentity` stores `is
 Policies live on the resource. Reads are public; creates need an actor; update/destroy need `relates_to_actor_via(:author)`. User emails are hidden from everyone but the user (field policy) — show `name` instead.
 
 ### Code interfaces are the only entry point
-Layering: **resource** owns the logic for its data (actions, policies, pub/sub topics, subscribe functions) → **domain** composes resources into the API (code interfaces, plus plain functions like `Sharing.subscribe_to_preset/1` that combine several resources) → **web layer** calls only the domain. Non-action logic follows the same path: put it on the resource it belongs to, expose it from the domain.
+Layering: **resource** owns the logic for its data (actions, policies, pub/sub topics, subscribe functions) → **domain** composes resources into the API (code interfaces, plus plain functions like `Sharing.subscribe_to_preset/1` that combine several resources) → **web layer** calls only the domain. Non-action logic follows the same path: put it on the resource it belongs to, expose it from the domain. In practice:
+- Permissions in templates come from the policies: `Sharing.can_edit_preset?(user, preset)` and the other generated `can_*?` functions, computed once into assigns (not per render). For per-row checks in lists, use a calculation on the resource (`Comment.removable_by_actor`). `can_*?` on read actions filters instead of refusing, so it can't gate a page; use `Accounts.admin?/1` for moderator-only pages and links.
+- Multi-step workflows are one action (`Sharing.hide_reported_preset/2` resolves and hides in one transaction), not two calls from a LiveView.
+- Helpers the web layer needs outside an action (import string checks, tag normalising and suggestions, version merge rules, limits, `preset_kinds/0`) are `defdelegate`s on `Sharing`. Web modules never alias `Runeshare.Sharing.<Resource>.*` internals.
 
 - Define code interfaces on the domain (`define :share_preset, action: :share`).
 - Call them from LiveViews and controllers — **never** `Ash.create!/2`, `Ash.Query`, or `load:`/`query:` options built ad hoc in web modules (credo `NoAdHocAshQueries` enforces). Need a load or filter? Add an action, argument, or `default_options`.

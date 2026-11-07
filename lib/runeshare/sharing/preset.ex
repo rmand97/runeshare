@@ -14,6 +14,7 @@ defmodule Runeshare.Sharing.Preset do
     simple_notifiers: [Runeshare.ActionLog.Notifier]
 
   @kinds [:watchdog_alarm, :tile_marker]
+  # Pub/sub topic prefix: the `pub_sub` block and the subscribe functions share it.
   @topic "presets"
 
   postgres do
@@ -75,6 +76,11 @@ defmodule Runeshare.Sharing.Preset do
       prepare Runeshare.Sharing.Preset.Preparations.SortByArgument
 
       pagination offset?: true, default_limit: 24, countable: true, required?: false
+    end
+
+    action :stats, :map do
+      description "Front-page totals: visible presets per kind and the newest share's time."
+      run Runeshare.Sharing.Preset.Actions.Stats
     end
 
     read :sitemap do
@@ -205,6 +211,11 @@ defmodule Runeshare.Sharing.Preset do
     policy action_type(:read) do
       authorize_if expr(hidden == false)
       authorize_if relates_to_actor_via(:author)
+    end
+
+    # Public numbers about public presets.
+    policy action(:stats) do
+      authorize_if always()
     end
 
     policy action([:mine, :liked]) do

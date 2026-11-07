@@ -388,4 +388,38 @@ defmodule RuneshareWeb.PresetShowTest do
       |> assert_has("button[title='Report this preset to the moderators']")
     end
   end
+
+  describe "action buttons follow the policies" do
+    test "author, other users, visitors and admins each see their own set", %{conn: conn} do
+      author = register_user!()
+      preset = share_preset!(author)
+      path = ~p"/presets/#{preset}"
+
+      conn
+      |> log_in_user(author)
+      |> visit(path)
+      |> assert_has("a", text: "Edit")
+      |> assert_has("button", text: "Delete")
+      |> refute_has("button", text: "Report")
+      |> refute_has("#toggle-hidden")
+
+      build_conn()
+      |> log_in_user(register_user!())
+      |> visit(path)
+      |> assert_has("button", text: "Report")
+      |> refute_has("a", text: "Edit")
+      |> refute_has("button", text: "Delete")
+
+      build_conn()
+      |> visit(path)
+      |> refute_has("button", text: "Report")
+      |> refute_has("button", text: "Delete")
+
+      build_conn()
+      |> log_in_user(register_admin!())
+      |> visit(path)
+      |> assert_has("#toggle-hidden", text: "Hide")
+      |> assert_has("button", text: "Delete")
+    end
+  end
 end

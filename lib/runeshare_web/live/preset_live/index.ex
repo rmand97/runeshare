@@ -12,7 +12,6 @@ defmodule RuneshareWeb.PresetLive.Index do
   alias Phoenix.LiveView.AsyncResult
   alias Phoenix.Socket.Broadcast
   alias Runeshare.Sharing
-  alias Runeshare.Sharing.Preset.Changes.NormalizeTags
 
   @page_sizes [5, 10, 15, 20, 25]
   @default_page_size 10
@@ -42,7 +41,7 @@ defmodule RuneshareWeb.PresetLive.Index do
     per = parse_per(params["per"])
     kind = socket.assigns.kind
     # `?tag=Zammy` finds presets tagged "zamorak", the same way saving normalises tags.
-    tag = params |> Map.get("tag", "") |> List.wrap() |> NormalizeTags.normalize() |> Enum.join()
+    tag = params |> Map.get("tag", "") |> List.wrap() |> Sharing.normalize_tags() |> Enum.join()
 
     socket =
       socket
@@ -137,7 +136,7 @@ defmodule RuneshareWeb.PresetLive.Index do
         <div class="flex flex-wrap gap-2">
           <div class="join">
             <.link
-              :for={kind <- Sharing.Preset.kinds()}
+              :for={kind <- Sharing.preset_kinds()}
               navigate={kind_path(kind)}
               class={["btn join-item btn-sm", kind == @kind && "btn-primary"]}
             >

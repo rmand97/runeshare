@@ -11,6 +11,9 @@ defmodule Runeshare.Sharing.Like do
     notifiers: [Ash.Notifier.PubSub],
     simple_notifiers: [Runeshare.ActionLog.Notifier]
 
+  # Pub/sub topic prefix: the `pub_sub` block and `subscribe/1` share it.
+  @topic "likes"
+
   postgres do
     table "likes"
     repo Runeshare.Repo
@@ -36,6 +39,14 @@ defmodule Runeshare.Sharing.Like do
     destroy :unlike do
       primary? true
     end
+
+    action :set, :atom do
+      description "Like (`liked: true`) or unlike (`liked: false`) a preset; either is idempotent."
+      constraints one_of: [:liked, :unliked]
+      argument :preset_id, :uuid, allow_nil?: false
+      argument :liked, :boolean, allow_nil?: false
+      run Runeshare.Sharing.Like.Set
+    end
   end
 
   policies do
@@ -49,7 +60,8 @@ defmodule Runeshare.Sharing.Like do
       authorize_if relates_to_actor_via([:preset, :author])
     end
 
-    policy action_type(:create) do
+    # The like/unlike it runs are authorized on their own.
+    policy action_type([:create, :action]) do
       authorize_if actor_present()
     end
 
@@ -57,8 +69,6 @@ defmodule Runeshare.Sharing.Like do
       authorize_if relates_to_actor_via(:user)
     end
   end
-
-  @topic "likes"
 
   pub_sub do
     module RuneshareWeb.Endpoint

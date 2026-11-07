@@ -65,7 +65,7 @@ defmodule RuneshareWeb.AuthorLive do
               {@author.name}
             </h1>
             <span
-              :if={@author.role == :admin}
+              :if={Runeshare.Accounts.admin?(@author)}
               class="badge rounded-sm font-display badge-sm tracking-wider uppercase badge-primary"
             >
               Admin

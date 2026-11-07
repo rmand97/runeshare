@@ -9,27 +9,28 @@ defmodule RuneshareWeb.ModerationLive do
   import RuneshareWeb.ListComponents
   import RuneshareWeb.PresetComponents
 
+  alias Runeshare.Accounts
   alias Runeshare.Sharing
   alias RuneshareWeb.Paging
 
   @impl Phoenix.LiveView
-  def mount(_params, _session, %{assigns: %{current_user: %{role: :admin} = admin}} = socket) do
-    socket =
-      socket
-      |> assign(page_title: "Moderation", report_index: %{})
-      |> Paging.init(:reports)
-      |> Paging.load(:reports, fetch(admin))
-
-    {:ok, socket}
+  def mount(_params, _session, socket) do
+    if Accounts.admin?(socket.assigns.current_user),
+      do: {:ok, mount_queue(socket)},
+      else: {:ok, refuse(socket)}
   end
 
-  def mount(_params, _session, socket) do
-    socket =
-      socket
-      |> put_flash(:error, "Only moderators can open the moderation queue.")
-      |> redirect(to: ~p"/")
+  defp mount_queue(%{assigns: %{current_user: admin}} = socket) do
+    socket
+    |> assign(page_title: "Moderation", report_index: %{})
+    |> Paging.init(:reports)
+    |> Paging.load(:reports, fetch(admin))
+  end
 
-    {:ok, socket}
+  defp refuse(socket) do
+    socket
+    |> put_flash(:error, "Only moderators can open the moderation queue.")
+    |> redirect(to: ~p"/")
   end
 
   # The buttons act on loaded report structs, kept in `report_index` by id.
@@ -74,8 +75,7 @@ defmodule RuneshareWeb.ModerationLive do
   end
 
   defp moderate(socket, "hide", report, admin) do
-    Sharing.hide_preset!(report.preset, actor: admin)
-    Sharing.resolve_report!(report, actor: admin)
+    Sharing.hide_reported_preset!(report, actor: admin)
 
     socket
     |> drop_reports([report])

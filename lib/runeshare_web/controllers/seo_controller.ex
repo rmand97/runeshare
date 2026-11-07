@@ -34,7 +34,7 @@ defmodule RuneshareWeb.SeoController do
     entries =
       [{url(~p"/"), nil}] ++
         Enum.map(
-          Sharing.Preset.kinds(),
+          Sharing.preset_kinds(),
           &{unverified_url(RuneshareWeb.Endpoint, kind_path(&1)), nil}
         ) ++
         Enum.map(presets, &{url(~p"/presets/#{&1}"), &1.updated_at}) ++

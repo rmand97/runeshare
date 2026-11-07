@@ -152,4 +152,9 @@ defmodule Runeshare.Accounts.User do
   identities do
     identity :unique_email, [:email]
   end
+
+  @doc "Whether `user` is a moderator. `nil` (signed out) is not."
+  @spec admin?(t() | nil) :: boolean()
+  def admin?(%__MODULE__{role: :admin}), do: true
+  def admin?(_user), do: false
 end

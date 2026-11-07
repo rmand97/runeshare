@@ -171,7 +171,7 @@ defmodule RuneshareWeb.PresetDetailComponents do
   end
 
   @doc "Readable trigger/action summary of each alert in a Watchdog export."
-  attr :alerts, :list, required: true, doc: "from `ImportString.watchdog_summary/1`"
+  attr :alerts, :list, required: true, doc: "from `Sharing.watchdog_alerts/1`"
 
   def alert_summary(assigns) do
     ~H"""

@@ -123,7 +123,7 @@ defmodule RuneshareWeb.AccountLive do
         <.panel id="my-presets" title="Your shares" icon="hero-share">
           <:actions>
             <.link
-              :for={kind <- Sharing.Preset.kinds()}
+              :for={kind <- Sharing.preset_kinds()}
               navigate={new_path(kind)}
               class="text-xs text-primary sm:hover:underline"
             >

@@ -53,7 +53,7 @@ defmodule RuneshareWeb.Layouts do
             <.icon name="hero-bars-3" class="size-5" />
           </summary>
           <ul class="menu dropdown-content z-10 mt-2 w-48 rounded-box border border-base-content/10 bg-base-100 p-1">
-            <li :for={kind <- Runeshare.Sharing.Preset.kinds()}>
+            <li :for={kind <- Runeshare.Sharing.preset_kinds()}>
               <.link navigate={PresetComponents.kind_path(kind)}>
                 <.icon name={PresetComponents.kind_icon(kind)} class="size-4" />
                 {PresetComponents.kind_short(kind)}
@@ -70,7 +70,7 @@ defmodule RuneshareWeb.Layouts do
         </.link>
         <nav class="ml-4 hidden h-12 self-stretch font-display text-xs tracking-wider uppercase sm:flex">
           <.link
-            :for={kind <- Runeshare.Sharing.Preset.kinds()}
+            :for={kind <- Runeshare.Sharing.preset_kinds()}
             navigate={PresetComponents.kind_path(kind)}
             class={[
               "flex items-center border-b-2 px-3 focus-visible:-outline-offset-2",
@@ -88,7 +88,7 @@ defmodule RuneshareWeb.Layouts do
         <.theme_toggle />
         <%= if @current_user do %>
           <.link
-            :if={@current_user.role == :admin}
+            :if={Runeshare.Accounts.admin?(@current_user)}
             navigate={~p"/moderation"}
             class="btn hidden btn-ghost font-display text-xs tracking-wider uppercase btn-sm md:inline-flex"
           >
@@ -110,7 +110,7 @@ defmodule RuneshareWeb.Layouts do
                 <.link navigate={~p"/account"}><.icon name="hero-user-circle" class="size-4" />
                 My account</.link>
               </li>
-              <li :if={@current_user.role == :admin}>
+              <li :if={Runeshare.Accounts.admin?(@current_user)}>
                 <.link navigate={~p"/moderation"}>
                   <.icon name="hero-flag" class="size-4" /> Moderation
                 </.link>

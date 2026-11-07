@@ -48,6 +48,15 @@ defmodule Runeshare.Sharing.Report do
       accept []
       change set_attribute(:status, :resolved)
     end
+
+    update :hide_preset do
+      description "Resolves the report and hides the reported preset, together."
+      accept []
+      # Runs a second action (Preset :hide) after the update; that can't be one SQL statement.
+      require_atomic? false
+      change set_attribute(:status, :resolved)
+      change Runeshare.Sharing.Report.Changes.HidePreset
+    end
   end
 
   policies do
@@ -56,6 +65,7 @@ defmodule Runeshare.Sharing.Report do
     end
 
     policy action(:file) do
+      forbid_if Runeshare.Sharing.Checks.ActorAuthorsPreset
       authorize_if actor_present()
     end
 

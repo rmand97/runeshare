@@ -9,6 +9,8 @@ defmodule Runeshare.Accounts do
     show? true
   end
 
+  alias Runeshare.Accounts.User
+
   resources do
     resource Runeshare.Accounts.Token
 
@@ -24,4 +26,8 @@ defmodule Runeshare.Accounts do
 
     resource Runeshare.Accounts.UserIdentity
   end
+
+  @doc "Whether `user` is a moderator (`role: :admin`). `nil` (signed out) is not."
+  @spec admin?(User.t() | nil) :: boolean()
+  defdelegate admin?(user), to: User
 end

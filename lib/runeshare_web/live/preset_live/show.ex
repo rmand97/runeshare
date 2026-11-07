@@ -15,7 +15,6 @@ defmodule RuneshareWeb.PresetLive.Show do
 
   alias Phoenix.Socket.Broadcast
   alias Runeshare.Sharing
-  alias Runeshare.Sharing.ImportString
   alias RuneshareWeb.Paging
   alias RuneshareWeb.StructuredData
 
@@ -31,6 +30,7 @@ defmodule RuneshareWeb.PresetLive.Show do
     socket =
       socket
       |> assign(preset: preset, version: nil, copied: MapSet.new(), report_form: nil)
+      |> assign_permissions()
       # Hidden presets are only for their author and admins: keep them out of search.
       |> assign(og: og(preset), noindex: preset.hidden, json_ld: json_ld(preset))
       |> assign_comment_form()
@@ -63,10 +63,8 @@ defmodule RuneshareWeb.PresetLive.Show do
     do: {:noreply, Paging.handle(socket, :comments, result, at: 0)}
 
   @impl Phoenix.LiveView
-  def handle_event("more_comments", _params, socket) do
-    preset_id = socket.assigns.preset.id
-    {:noreply, Paging.load(socket, :comments, &Sharing.list_comments!(preset_id, page: &1))}
-  end
+  def handle_event("more_comments", _params, socket),
+    do: {:noreply, Paging.load(socket, :comments, fetch_comments(socket))}
 
   def handle_event("copied", %{"id" => id}, socket) do
     before = socket.assigns.copied
@@ -143,12 +141,8 @@ defmodule RuneshareWeb.PresetLive.Show do
   def handle_event("toggle_like", _params, socket) do
     %{preset: preset, current_user: user} = socket.assigns
 
-    if preset.liked_by_me do
-      unlike(preset, user)
-    else
-      Sharing.like_preset!(preset.id, actor: user)
-    end
-
+    # What the button showed decides: a stale "Liked" still means unlike.
+    Sharing.set_like!(preset.id, !preset.liked_by_me, actor: user)
     {:noreply, refresh_preset(socket)}
   end
 
@@ -165,7 +159,10 @@ defmodule RuneshareWeb.PresetLive.Show do
       {:ok, comment} ->
         {:noreply,
          socket
-         |> stream_insert(:comments, Sharing.get_comment!(comment.id))
+         |> stream_insert(
+           :comments,
+           Sharing.get_comment!(comment.id, actor: socket.assigns.current_user)
+         )
          |> assign_comment_form()
          |> refresh_preset()}
 
@@ -177,7 +174,7 @@ defmodule RuneshareWeb.PresetLive.Show do
 
   def handle_event("delete_comment", %{"id" => id}, socket) do
     user = socket.assigns.current_user
-    comment = Sharing.get_comment!(id)
+    comment = Sharing.get_comment!(id, actor: user)
     Sharing.remove_comment!(comment, actor: user)
 
     {:noreply, socket |> stream_delete(:comments, comment) |> refresh_preset()}
@@ -214,7 +211,7 @@ defmodule RuneshareWeb.PresetLive.Show do
   # so the next "Show earlier comments" page starts at the right offset.
   def handle_info(%Broadcast{topic: "comments:" <> _id, event: "post", payload: payload}, socket) do
     socket =
-      case Sharing.get_comment(payload.data.id) do
+      case Sharing.get_comment(payload.data.id, actor: socket.assigns.current_user) do
         {:ok, comment} ->
           socket |> stream_insert(:comments, comment) |> Paging.shift(:comments, 1)
 
@@ -306,7 +303,7 @@ defmodule RuneshareWeb.PresetLive.Show do
             class="btn btn-outline btn-sm"
           />
           <button
-            :if={@current_user && !owner?(@preset, @current_user) && !@report_form}
+            :if={@can.report && !@report_form}
             type="button"
             class="btn btn-ghost btn-sm"
             title="Report this preset to the moderators"
@@ -315,7 +312,7 @@ defmodule RuneshareWeb.PresetLive.Show do
             <.icon name="hero-flag" class="size-4" /> Report
           </button>
           <button
-            :if={admin?(@current_user)}
+            :if={@can.hide}
             id="toggle-hidden"
             type="button"
             class="btn btn-outline btn-sm btn-warning"
@@ -333,7 +330,7 @@ defmodule RuneshareWeb.PresetLive.Show do
             <% end %>
           </button>
           <.link
-            :if={!@version and owner?(@preset, @current_user)}
+            :if={!@version and @can.edit}
             navigate={~p"/presets/#{@preset}/edit"}
             title="Edit this preset"
             class="btn btn-outline btn-sm"
@@ -341,7 +338,7 @@ defmodule RuneshareWeb.PresetLive.Show do
             <.icon name="hero-pencil-square" class="size-4" /> Edit
           </.link>
           <button
-            :if={!@version and (owner?(@preset, @current_user) or admin?(@current_user))}
+            :if={!@version and @can.delete}
             type="button"
             class="btn btn-outline btn-error btn-sm"
             title="Delete this preset"
@@ -430,7 +427,7 @@ defmodule RuneshareWeb.PresetLive.Show do
                 id={dom_id}
                 comment={comment}
                 preset={@preset}
-                can_delete={can_delete?(comment, @preset, @current_user)}
+                can_delete={comment.removable_by_actor}
               />
             </ul>
             <div class="border-t border-base-content/10 p-3">
@@ -508,7 +505,7 @@ defmodule RuneshareWeb.PresetLive.Show do
     assign(socket,
       shown: shown,
       page_title: shown.title,
-      alerts: ImportString.watchdog_summary(shown.content)
+      alerts: Sharing.watchdog_alerts(shown.content)
     )
   end
 
@@ -517,7 +514,20 @@ defmodule RuneshareWeb.PresetLive.Show do
 
     socket
     |> assign(preset: Sharing.get_preset!(preset.id, actor: user))
+    |> assign_permissions()
     |> put_shown()
+  end
+
+  # What the viewer may do here, straight from the resources' policies.
+  defp assign_permissions(%{assigns: %{preset: preset, current_user: user}} = socket) do
+    assign(socket,
+      can: %{
+        edit: Sharing.can_edit_preset?(user, preset),
+        delete: Sharing.can_delete_preset?(user, preset),
+        hide: Sharing.can_hide_preset?(user, preset),
+        report: Sharing.can_report_preset?(user, preset.id, :other)
+      }
+    )
   end
 
   defp load_versions(socket) do
@@ -531,11 +541,16 @@ defmodule RuneshareWeb.PresetLive.Show do
   # Newest first from the database, shown oldest first: each page is prepended,
   # so "Show earlier comments" adds older ones on top.
   defp load_comments(socket) do
-    preset_id = socket.assigns.preset.id
-
     socket
     |> Paging.init(:comments)
-    |> Paging.load(:comments, &Sharing.list_comments!(preset_id, page: &1))
+    |> Paging.load(:comments, fetch_comments(socket))
+  end
+
+  # The viewer is the actor: comments on a hidden preset are only theirs to see if
+  # it is theirs, and `removable_by_actor` decides each comment's delete button.
+  defp fetch_comments(socket) do
+    %{preset: %{id: preset_id}, current_user: user} = socket.assigns
+    &Sharing.list_comments!(preset_id, actor: user, page: &1)
   end
 
   defp assign_comment_form(%{assigns: %{current_user: nil}} = socket),
@@ -603,21 +618,4 @@ defmodule RuneshareWeb.PresetLive.Show do
       do: String.slice(text, 0, max - 1) <> "…",
       else: text
   end
-
-  # This page can be a step behind: the like may already be gone (another tab).
-  defp unlike(preset, user) do
-    case Sharing.unlike_preset(preset.id, user.id, actor: user) do
-      :ok -> :ok
-      {:error, %Ash.Error.Invalid{errors: [%Ash.Error.Query.NotFound{}]}} -> :ok
-    end
-  end
-
-  defp admin?(user), do: user != nil and user.role == :admin
-
-  defp owner?(preset, user), do: user != nil and preset.author_id == user.id
-
-  defp can_delete?(_comment, _preset, nil), do: false
-
-  defp can_delete?(comment, preset, user),
-    do: admin?(user) or comment.author_id == user.id or preset.author_id == user.id
 end

@@ -11,6 +11,9 @@ defmodule Runeshare.Sharing.Comment do
     notifiers: [Ash.Notifier.PubSub],
     simple_notifiers: [Runeshare.ActionLog.Notifier]
 
+  # Pub/sub topic prefix: the `pub_sub` block and `subscribe/1` share it.
+  @topic "comments"
+
   postgres do
     table "comments"
     repo Runeshare.Repo
@@ -32,7 +35,12 @@ defmodule Runeshare.Sharing.Comment do
       description "A preset's comments, newest first, with their authors. Page it for long threads."
       argument :preset_id, :uuid, allow_nil?: false
       filter expr(preset_id == ^arg(:preset_id))
-      prepare build(sort: [inserted_at: :desc, id: :desc], load: [:author])
+
+      prepare build(
+                sort: [inserted_at: :desc, id: :desc],
+                load: [:author, :removable_by_actor]
+              )
+
       pagination offset?: true, countable: true, required?: false, default_limit: 20
     end
 
@@ -72,8 +80,6 @@ defmodule Runeshare.Sharing.Comment do
     end
   end
 
-  @topic "comments"
-
   pub_sub do
     module RuneshareWeb.Endpoint
     prefix @topic
@@ -109,6 +115,19 @@ defmodule Runeshare.Sharing.Comment do
 
     belongs_to :author, Runeshare.Accounts.User do
       allow_nil? false
+      public? true
+    end
+  end
+
+  calculations do
+    # Mirrors the destroy policy below (author, preset author, admins), so a page
+    # can show the delete button per comment without a policy check per row.
+    calculate :removable_by_actor,
+              :boolean,
+              expr(
+                ^actor(:role) == :admin or author_id == ^actor(:id) or
+                  preset.author_id == ^actor(:id)
+              ) do
       public? true
     end
   end

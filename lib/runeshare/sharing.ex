@@ -5,7 +5,9 @@ defmodule Runeshare.Sharing do
 
   use Ash.Domain, otp_app: :runeshare, extensions: [AshAdmin.Domain, AshPhoenix]
 
-  alias Runeshare.Sharing.{Comment, Like, Preset}
+  alias Runeshare.Sharing.{Comment, ImportString, Like, Preset, TagCatalog}
+  alias Runeshare.Sharing.Preset.Changes.{NormalizeTags, SnapshotVersion}
+  alias Runeshare.Sharing.Preset.Validations.CoverImage
 
   admin do
     show? true
@@ -17,6 +19,7 @@ defmodule Runeshare.Sharing do
       define :list_presets, action: :list, args: [:kind]
 
       define :list_sitemap_presets, action: :sitemap
+      define :preset_stats, action: :stats
       define :list_liked_presets, action: :liked
       define :list_presets_by_author, action: :by_author, args: [:author_id]
       define :find_duplicate_presets, action: :duplicates, args: [:kind, :content]
@@ -53,16 +56,23 @@ defmodule Runeshare.Sharing do
       define :report_preset, action: :file, args: [:preset_id, :reason]
       define :list_open_reports, action: :open
       define :resolve_report, action: :resolve
+      define :hide_reported_preset, action: :hide_preset
     end
 
     resource Runeshare.Sharing.Like do
       define :like_preset, action: :like, args: [:preset_id]
       define :unlike_preset, action: :unlike, get_by: [:preset_id, :user_id]
+      define :set_like, action: :set, args: [:preset_id, :liked]
     end
 
     resource Runeshare.Sharing.Comment do
       define :list_comments, action: :for_preset, args: [:preset_id]
-      define :get_comment, action: :read, get_by: [:id], default_options: [load: [:author]]
+
+      define :get_comment,
+        action: :read,
+        get_by: [:id],
+        default_options: [load: [:author, :removable_by_actor]]
+
       define :post_comment, action: :post, args: [:preset_id, :body]
       define :remove_comment, action: :remove
     end
@@ -96,4 +106,47 @@ defmodule Runeshare.Sharing do
   end
 
   defp preset_topics, do: [Preset, Like, Comment]
+
+  # Rules the web layer needs outside an action: form hints, previews, URL
+  # parsing. The logic lives with the resource it belongs to.
+
+  @doc "Every supported preset kind."
+  @spec preset_kinds() :: list(atom())
+  defdelegate preset_kinds(), to: Preset, as: :kinds
+
+  @doc "Whether `content` is a valid import string for `kind`, with the reason if not."
+  @spec check_import_string(atom(), String.t()) :: :ok | {:error, String.t()}
+  defdelegate check_import_string(kind, content), to: ImportString, as: :check
+
+  @doc "A title read out of an import string (first alert / preset name), if it has one."
+  @spec suggest_title(atom(), String.t()) :: String.t() | nil
+  defdelegate suggest_title(kind, content), to: ImportString, as: :suggested_title
+
+  @doc "The alerts in a Watchdog export, for the \"Alerts in this export\" panel."
+  @spec watchdog_alerts(String.t()) :: list(map())
+  defdelegate watchdog_alerts(content), to: ImportString, as: :watchdog_summary
+
+  @doc "Tags as saving stores them: trimmed, lowercased, nicknames mapped, deduplicated."
+  @spec normalize_tags(list(String.t())) :: list(String.t())
+  defdelegate normalize_tags(tags), to: NormalizeTags, as: :normalize
+
+  @doc "Catalogue tags matching what the user has typed so far."
+  @spec suggest_tags(String.t()) :: list(String.t())
+  defdelegate suggest_tags(text), to: TagCatalog, as: :suggest
+
+  @doc "Largest accepted cover image, in bytes."
+  @spec cover_image_max_bytes() :: pos_integer()
+  defdelegate cover_image_max_bytes(), to: CoverImage, as: :max_bytes
+
+  @doc "Seconds after a version's creation during which an edit updates it in place."
+  @spec version_merge_window() :: non_neg_integer()
+  defdelegate version_merge_window(), to: SnapshotVersion, as: :merge_window
+
+  @doc "Whether saving this share/edit changeset writes a new version."
+  @spec new_version?(Ash.Changeset.t()) :: boolean()
+  defdelegate new_version?(changeset), to: SnapshotVersion
+
+  @doc "Whether an edit now would update `version` in place instead of adding one."
+  @spec amends_version?(Runeshare.Sharing.PresetVersion.t()) :: boolean()
+  defdelegate amends_version?(version), to: SnapshotVersion, as: :amends?
 end

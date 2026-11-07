@@ -9,11 +9,6 @@ defmodule RuneshareWeb.PresetLive.Form do
   import RuneshareWeb.PresetComponents
 
   alias Runeshare.Sharing
-  alias Runeshare.Sharing.ImportString
-  alias Runeshare.Sharing.Preset.Changes.NormalizeTags
-  alias Runeshare.Sharing.Preset.Changes.SnapshotVersion
-  alias Runeshare.Sharing.Preset.Validations.CoverImage
-  alias Runeshare.Sharing.TagCatalog
 
   # Inputs rendered with their own error messages; anything else shows above the buttons.
   @field_inputs [:title, :description, :content, :tags, :change_note, :cover_image]
@@ -29,7 +24,7 @@ defmodule RuneshareWeb.PresetLive.Form do
       allow_upload(socket, :cover_image,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
-        max_file_size: CoverImage.max_bytes(),
+        max_file_size: Sharing.cover_image_max_bytes(),
         # Upload as soon as it's picked (with progress), so Save doesn't wait on it.
         auto_upload: true
       )
@@ -59,11 +54,11 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   # The tag picker asks for suggestions while the user types.
   def handle_event("live_select_change", %{"text" => text, "id" => id}, socket) do
-    typed = NormalizeTags.normalize([text])
+    typed = Sharing.normalize_tags([text])
 
     send_update(LiveSelect.Component,
       id: id,
-      options: Enum.uniq(TagCatalog.suggest(text) ++ typed)
+      options: Enum.uniq(Sharing.suggest_tags(text) ++ typed)
     )
 
     {:noreply, socket}
@@ -137,7 +132,7 @@ defmodule RuneshareWeb.PresetLive.Form do
             <legend class="fieldset-legend">Kind</legend>
             <div class="join w-full sm:w-auto">
               <.link
-                :for={kind <- Runeshare.Sharing.Preset.kinds()}
+                :for={kind <- Runeshare.Sharing.preset_kinds()}
                 patch={new_path(kind)}
                 class={["btn join-item flex-1 btn-sm", kind == @kind && "btn-primary"]}
               >
@@ -246,7 +241,7 @@ defmodule RuneshareWeb.PresetLive.Form do
             <%= cond do %>
               <% new_version?(@form) and @amends_version -> %>
                 Saving updates <span class="font-mono text-primary">v{@preset.version}</span>
-                — it was saved less than {div(SnapshotVersion.merge_window(), 60)} minutes ago.
+                — it was saved less than {div(Sharing.version_merge_window(), 60)} minutes ago.
               <% new_version?(@form) -> %>
                 Saving will create <span class="font-mono text-primary">v{@preset.version + 1}</span>.
                 Older versions stay available.
@@ -436,7 +431,7 @@ defmodule RuneshareWeb.PresetLive.Form do
   # Exports carry their own name; use it when the user hasn't typed a title yet.
   defp maybe_suggest_title(%{"title" => title, "content" => content} = params, kind)
        when title in [nil, ""] do
-    case ImportString.suggested_title(kind, String.trim(content)) do
+    case Sharing.suggest_title(kind, String.trim(content)) do
       nil -> params
       suggested -> Map.put(params, "title", String.slice(suggested, 0, 100))
     end
@@ -444,12 +439,12 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   defp maybe_suggest_title(params, _kind), do: params
 
-  defp new_version?(form), do: SnapshotVersion.new_version?(form.source.source)
+  defp new_version?(form), do: Sharing.new_version?(form.source.source)
 
   # The tag picker posts the chosen tags as `tags`, or `tags_empty_selection`
   # once every tag has been removed.
   defp put_tags(%{"tags" => tags} = params),
-    do: Map.put(params, "tags", tags |> List.wrap() |> NormalizeTags.normalize())
+    do: Map.put(params, "tags", tags |> List.wrap() |> Sharing.normalize_tags())
 
   defp put_tags(%{"tags_empty_selection" => _empty} = params), do: Map.put(params, "tags", [])
   defp put_tags(params), do: params
@@ -468,7 +463,7 @@ defmodule RuneshareWeb.PresetLive.Form do
     content = String.trim(raw_content)
 
     duplicates =
-      if content != "" and ImportString.check(kind, content) == :ok do
+      if content != "" and Sharing.check_import_string(kind, content) == :ok do
         kind
         |> Sharing.find_duplicate_presets!(content, actor: user)
         |> Enum.reject(&(preset && &1.id == preset.id))
@@ -538,7 +533,7 @@ defmodule RuneshareWeb.PresetLive.Form do
   # Decided once per visit; the hint can lag the window by the time spent editing.
   defp amends_newest_version?(preset, user) do
     case Sharing.get_preset_version(preset.id, preset.version, actor: user) do
-      {:ok, newest} -> SnapshotVersion.amends?(newest)
+      {:ok, newest} -> Sharing.amends_version?(newest)
       {:error, _missing} -> false
     end
   end
