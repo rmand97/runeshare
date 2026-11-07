@@ -130,6 +130,7 @@ Suppress with `# credo:disable-for-next-definition <Check>` plus a reason commen
 
 - Don't use raw Ecto in domain code (use Ash).
 - Don't use `String.to_atom/1` on user input.
+- Don't strip or "sanitize" user text on input, and don't render it with `raw/1` or `{:safe, ...}`: it's stored as typed and HEEx escapes it on output (Ecto parameterises queries). The one exception is `StructuredData.encode/1`, which escapes for its `<script>` context. `test/runeshare_web/injection_test.exs` puts attack strings in every user field; extend it when adding one.
 - Don't set `require_atomic? false` without a justified reason.
 - Don't write inline `<script>` tags in templates. Use colocated hooks (`:type={Phoenix.LiveView.ColocatedHook}`) or `assets/js/`. Exception: the root layout's `application/ld+json` block (data, not code), built by `RuneshareWeb.StructuredData` — pages assign `json_ld`.
 - Don't reference external vendor scripts/CSS via `src`/`href`. Bundle through `app.js` / `app.css`.
