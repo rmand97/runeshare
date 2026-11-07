@@ -129,7 +129,8 @@ defmodule Runeshare.MixProject do
        ref: "1953a8d0a375c982848390cd000ae2a184e0e686",
        only: [:dev, :test],
        runtime: false},
-      {:canonical_tailwind, "~> 0.3", only: [:dev, :test], runtime: false}
+      {:canonical_tailwind, "~> 0.3", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.18.1", only: [:dev, :test], runtime: false, warn_if_outdated: true}
     ]
   end
 
