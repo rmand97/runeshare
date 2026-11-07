@@ -16,6 +16,7 @@ defmodule RuneshareWeb.Router do
     plug :put_root_layout, html: {RuneshareWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug RuneshareWeb.Plugs.ContentSecurityPolicy
     plug :load_from_session
     plug RuneshareWeb.Plugs.LogMetadata
   end
@@ -70,7 +71,9 @@ defmodule RuneshareWeb.Router do
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: RuneshareWeb.Telemetry
+      live_dashboard "/dashboard",
+        metrics: RuneshareWeb.Telemetry,
+        csp_nonce_assign_key: %{img: :csp_nonce, style: :csp_nonce, script: :csp_nonce}
     end
 
     # Cover images stored by AshStorage.Service.Disk; prod serves them from Tigris.
@@ -79,7 +82,7 @@ defmodule RuneshareWeb.Router do
     scope "/admin" do
       pipe_through :browser
 
-      ash_admin "/"
+      ash_admin "/", csp_nonce_assign_key: :csp_nonce
     end
   end
 end

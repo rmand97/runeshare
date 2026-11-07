@@ -392,6 +392,8 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   defp uploading?(upload), do: Enum.any?(upload.entries, &(not &1.done?))
 
+  # Removes the temp copies `put_cover_image/2` made; no client input in the paths.
+  # sobelow_skip ["Traversal.FileModule"]
   defp submit(socket, params) do
     {params, copies} = put_cover_image(socket, params)
 
@@ -412,6 +414,8 @@ defmodule RuneshareWeb.PresetLive.Form do
 
   # LiveView deletes an upload's temp file when consuming ends, but the action
   # reads it afterwards, so it works on a copy (removed after submitting).
+  # Both paths are server-made: LiveView's upload temp file and Plug.Upload.random_file!/1.
+  # sobelow_skip ["Traversal.FileModule"]
   defp put_cover_image(socket, params) do
     uploads =
       consume_uploaded_entries(socket, :cover_image, fn %{path: path}, entry ->

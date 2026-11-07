@@ -1,0 +1,20 @@
+# `mix sobelow` settings. `skip: true` honours `# sobelow_skip [...]` comments,
+# each placed directly above its function with the reason on the lines above it.
+[
+  exit: false,
+  format: "txt",
+  # The CSP is set by RuneshareWeb.Plugs.ContentSecurityPolicy (per-request
+  # nonce), which sobelow can't see: it only reads put_secure_browser_headers.
+  ignore: ["Config.CSP"],
+  only: [],
+  ignore_files: [],
+  include_mix_tasks: false,
+  include_scripts: false,
+  out: nil,
+  private: true,
+  router: nil,
+  skip: true,
+  summary: false,
+  threshold: :low,
+  verbose: false
+]

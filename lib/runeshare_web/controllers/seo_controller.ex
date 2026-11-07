@@ -26,7 +26,9 @@ defmodule RuneshareWeb.SeoController do
     conn |> put_resp_content_type("text/plain") |> send_resp(200, body)
   end
 
+  # Served as application/xml, and every URL in it is escaped by `sitemap_xml/1`.
   @spec sitemap(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  # sobelow_skip ["XSS.SendResp"]
   def sitemap(conn, _params) do
     # Anonymous read: hidden presets stay out.
     presets = Sharing.list_sitemap_presets!()

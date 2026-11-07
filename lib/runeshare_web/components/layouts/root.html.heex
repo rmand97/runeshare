@@ -24,7 +24,7 @@
       content={if assigns[:og][:image], do: "summary_large_image", else: "summary"}
     />
     <%!-- Structured data (schema.org JSON-LD) for search engines: data, never run. --%>
-    <script :if={assigns[:json_ld]} type="application/ld+json" phx-no-format><%= raw(RuneshareWeb.StructuredData.encode(assigns[:json_ld])) %></script>
+    <script :if={assigns[:json_ld]} type="application/ld+json" phx-no-format><%= RuneshareWeb.StructuredData.encode(assigns[:json_ld]) %></script>
     <.live_title default="RuneShare" suffix=" · RuneShare" phx-no-format>{assigns[:page_title]}</.live_title>
     <link rel="icon" href={~p"/favicon.ico"} sizes="64x64" />
     <link rel="icon" href={~p"/favicon.svg"} type="image/svg+xml" />
@@ -32,7 +32,7 @@
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
-    <script>
+    <script nonce={@conn.assigns[:csp_nonce]}>
       // Dark by default (set on <html> above); only an explicit "light" choice overrides it.
       (() => {
         const apply = (theme) =>

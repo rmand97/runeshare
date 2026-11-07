@@ -39,6 +39,9 @@ defmodule Runeshare.Sharing.Preset.Validations.CoverImage do
 
   @doc "The image type of the file at `path`, from its magic bytes."
   @spec detect(Path.t()) :: {:ok, String.t()} | {:error, :not_an_image | File.posix()}
+  # `path` is a server-side upload temp file: Ash.Type.File only casts upload
+  # structs, never a client-supplied string or map.
+  # sobelow_skip ["Traversal.FileModule"]
   def detect(path) do
     case File.open(path, [:read, :binary], &IO.binread(&1, 12)) do
       {:ok, header} -> image_type(header)

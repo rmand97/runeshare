@@ -61,19 +61,23 @@ defmodule RuneshareWeb.StructuredData do
   end
 
   @doc """
-  JSON for inside a `<script>` tag. `<`, `>` and `&` only occur inside JSON
-  strings, so swapping them for `\\u` escapes keeps the JSON equal while user
-  text can't close the tag.
+  JSON for inside a `<script>` tag, marked safe for HEEx. `<`, `>` and `&` only
+  occur inside JSON strings, so swapping them for `\\u` escapes keeps the JSON
+  equal while user text can't close the tag — that escaping is what makes it
+  safe to emit unescaped.
   """
-  @spec encode(list(map())) :: String.t()
+  @spec encode(list(map())) :: Phoenix.HTML.safe()
   def encode(data) do
-    data
-    |> JSON.encode!()
-    |> String.replace(["<", ">", "&"], fn
-      "<" -> "\\u003c"
-      ">" -> "\\u003e"
-      "&" -> "\\u0026"
-    end)
+    json =
+      data
+      |> JSON.encode!()
+      |> String.replace(["<", ">", "&"], fn
+        "<" -> "\\u003c"
+        ">" -> "\\u003e"
+        "&" -> "\\u0026"
+      end)
+
+    {:safe, json}
   end
 
   defp counter(type, count) do
