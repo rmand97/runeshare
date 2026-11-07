@@ -132,8 +132,18 @@ defmodule RuneshareWeb.Layouts do
       {render_slot(@inner_block)}
     </main>
 
-    <footer class="mx-auto max-w-6xl px-4 pt-2 pb-6 text-[11px] text-base-content/60">
-      RuneShare · community-made, not affiliated with Jagex.
+    <footer class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-1.5 gap-y-1 px-4 pt-2 pb-6 text-[11px] text-base-content/60">
+      <span>RuneShare · community-made, not affiliated with Jagex.</span>
+      <span aria-hidden="true">·</span>
+      <a
+        id="footer-source"
+        href="https://github.com/rmand97/runeshare"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
+      >
+        <.icon name="hero-code-bracket" class="size-3.5" /> Source on GitHub
+      </a>
     </footer>
 
     <LiveToast.toast_group
