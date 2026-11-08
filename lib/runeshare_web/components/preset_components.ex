@@ -260,9 +260,12 @@ defmodule RuneshareWeb.PresetComponents do
         data-canvas
         role="region"
         aria-label="Map of the marked tiles"
-        class="h-72 bg-black sm:h-112"
+        class="h-72 bg-black in-data-hook-failed:hidden sm:h-112"
       >
       </div>
+      <p class="hidden p-3 text-sm text-base-content/65 in-data-hook-failed:block">
+        Couldn't draw the map for this preset. The import string above still works.
+      </p>
       <div
         :if={length(@planes) > 1}
         class="absolute top-2 right-2 join z-1000 shadow"
@@ -306,14 +309,19 @@ defmodule RuneshareWeb.PresetComponents do
         return L.divIcon({html: span, className: "", iconSize: null})
       }
 
-      // Open on where most tiles are: the ones within 128 tiles of the median tile,
-      // so a stray tile far away doesn't zoom the map out to the whole world.
+      // Open on the busiest spot: of up to 500 sample tiles, the one with the most
+      // tiles within 128 of it, and those tiles. A stray tile far away, or tiles
+      // spread over the whole world, then can't zoom the map out to nothing.
+      const REACH = 128
       function focus(tiles) {
-        const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
-        const mx = median(tiles.map(tile => tile[0]))
-        const mz = median(tiles.map(tile => tile[1]))
-        const near = tiles.filter(([x, z]) => Math.abs(x - mx) <= 128 && Math.abs(z - mz) <= 128)
-        return L.latLngBounds(near.map(([x, z]) => [[z, x], [z + 1, x + 1]]).flat())
+        const step = Math.max(1, Math.floor(tiles.length / 500))
+        let best = []
+        for (let i = 0; i < tiles.length; i += step) {
+          const [cx, cz] = tiles[i]
+          const near = tiles.filter(([x, z]) => Math.abs(x - cx) <= REACH && Math.abs(z - cz) <= REACH)
+          if (near.length > best.length) best = near
+        }
+        return L.latLngBounds(best.map(([x, z]) => [[z, x], [z + 1, x + 1]]).flat())
       }
 
       export default {
@@ -357,7 +365,7 @@ defmodule RuneshareWeb.PresetComponents do
             }).addTo(this.marks)
             if (label) L.marker([z + 0.5, x + 0.5], {icon: labelIcon(label), interactive: false}).addTo(this.marks)
           }
-          this.map.fitBounds(focus(shown), {padding: [24, 24], maxZoom: 4})
+          if (shown.length > 0) this.map.fitBounds(focus(shown), {padding: [24, 24], maxZoom: 4})
         }
       }
     </script>

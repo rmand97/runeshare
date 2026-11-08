@@ -27,11 +27,36 @@ import {createLiveToastHook} from "live_toast"
 import liveSelectHooks from "live_select"
 import topbar from "../vendor/topbar"
 
+// A hook that throws in a lifecycle callback stops LiveView from applying the rest
+// of the page's updates (async sections stay skeletons). Contain it: log the error,
+// mark the hook's element with `data-hook-failed` (for a fallback message) and let
+// the page carry on.
+const CALLBACKS = ["mounted", "beforeUpdate", "updated", "destroyed", "disconnected", "reconnected"]
+
+function contain(name, hook) {
+  if (typeof hook !== "object" || hook === null) return hook
+  const contained = {...hook}
+  for (const callback of CALLBACKS) {
+    if (typeof hook[callback] !== "function") continue
+    contained[callback] = function (...args) {
+      try {
+        return hook[callback].apply(this, args)
+      } catch (error) {
+        console.error(`Hook ${name} failed in ${callback}:`, error)
+        this.el.setAttribute("data-hook-failed", "")
+      }
+    }
+  }
+  return contained
+}
+
+const hooks = {...colocatedHooks, ...liveSelectHooks, LiveToast: createLiveToastHook()}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, ...liveSelectHooks, LiveToast: createLiveToastHook()},
+  hooks: Object.fromEntries(Object.entries(hooks).map(([name, hook]) => [name, contain(name, hook)])),
 })
 
 // Show progress bar on live navigation and form submits
