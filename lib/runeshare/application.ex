@@ -6,6 +6,7 @@ defmodule Runeshare.Application do
   use Application
 
   alias Runeshare.Repo.SlowQueryLog
+  alias Runeshare.Sharing.WikiTileMarkers
 
   @impl true
   def start(_type, _args) do
@@ -20,7 +21,9 @@ defmodule Runeshare.Application do
       # {Runeshare.Worker, arg},
       # Start to serve requests, typically the last entry
       RuneshareWeb.Endpoint,
-      {AshAuthentication.Supervisor, [otp_app: :runeshare]}
+      {AshAuthentication.Supervisor, [otp_app: :runeshare]},
+      # Pulls new and changed presets from the RuneScape Wiki once per boot (prod).
+      {Task, &WikiTileMarkers.sync_on_boot/0}
     ]
 
     # See https://elixir.hexdocs.pm/Supervisor.html

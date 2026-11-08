@@ -42,6 +42,7 @@ defmodule Runeshare.Sharing do
         ]
 
       define :share_preset, action: :share
+      define :import_preset, action: :import
       define :edit_preset, action: :edit
       define :delete_preset, action: :destroy
     end

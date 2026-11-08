@@ -18,6 +18,7 @@ defmodule Runeshare.Accounts do
       define :update_profile, action: :update_profile
       define :delete_account, action: :destroy_account
       define :get_user, action: :read, get_by: [:id]
+      define :get_user_by_email, action: :by_email, args: [:email], not_found_error?: true
 
       define :get_author,
         action: :read,

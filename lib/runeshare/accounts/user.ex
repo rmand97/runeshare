@@ -70,6 +70,8 @@ defmodule Runeshare.Accounts.User do
 
     field_policy :email do
       authorize_if expr(id == ^actor(:id))
+      # System lookups by address (the wiki tile marker sync's author).
+      authorize_if action(:by_email)
     end
 
     field_policy :* do
@@ -85,6 +87,13 @@ defmodule Runeshare.Accounts.User do
       argument :subject, :string, allow_nil?: false
       get? true
       prepare AshAuthentication.Preparations.FilterBySubject
+    end
+
+    read :by_email do
+      description "The user with this address. For system tasks; not exposed to the web."
+      argument :email, :ci_string, allow_nil?: false
+      get? true
+      filter expr(email == ^arg(:email))
     end
 
     destroy :destroy_account do

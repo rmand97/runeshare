@@ -72,3 +72,8 @@ config :phoenix_test,
     # Let a page's async loaders finish before the test's DB owner goes away.
     ecto_sandbox_stop_owner_delay: 100
   ]
+
+# The wiki tile marker sync never reaches the wiki in tests: Req.Test stubs answer.
+config :runeshare, :wiki_tile_markers_req_options,
+  plug: {Req.Test, Runeshare.Sharing.WikiTileMarkers},
+  retry: false

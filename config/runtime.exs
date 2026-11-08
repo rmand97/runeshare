@@ -232,6 +232,15 @@ if config_env() == :prod do
   # Every other host name (www., the fly.dev name) redirects here.
   config :runeshare, :canonical_host, host
 
+  # The RuneScape Wiki's Guide:Tilemarkers presets are synced at boot and shared by
+  # this user (skipped until they have signed in once). Empty disables the sync.
+  config :runeshare, :wiki_tile_markers,
+    author_email:
+      (case System.get_env("WIKI_TILE_MARKERS_AUTHOR", "raflnatorr@gmail.com") do
+         "" -> nil
+         email -> email
+       end)
+
   config :runeshare, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :runeshare, RuneshareWeb.Endpoint,

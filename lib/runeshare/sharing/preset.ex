@@ -155,6 +155,21 @@ defmodule Runeshare.Sharing.Preset do
               argument: :cover_image, attachment: :cover_image}
     end
 
+    create :import do
+      description """
+      A share by the system on a user's behalf (the wiki tile marker sync): no rate
+      limit, no cover image. Not exposed to the web.
+      """
+
+      accept [:kind, :title, :description, :content, :tags]
+
+      # Without an actor the create policy refuses (Forbidden) instead of this erroring.
+      change relate_actor(:author, allow_nil?: true)
+      change Runeshare.Sharing.Preset.Changes.NormalizeTags
+      change Runeshare.Sharing.Preset.Changes.HashContent
+      change Runeshare.Sharing.Preset.Changes.SnapshotVersion
+    end
+
     update :edit do
       description "Saves a new version (v2, v3, ...). Older versions stay readable."
       accept [:title, :description, :content, :tags]

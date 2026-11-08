@@ -101,3 +101,12 @@ if Sharing.list_comments!(first.id) == [] do
 end
 
 # Moderation: dev admins come from ADMIN_EMAILS in .env (e.g. ADMIN_EMAILS=you@gmail.com).
+
+# The RuneScape Wiki's tile marker presets (Guide:Tilemarkers), as prod syncs them
+# at boot. Needs network; logs a warning and moves on without it.
+wiki_author = "raflnatorr@gmail.com"
+
+with {:error, _not_found} <- Runeshare.Accounts.get_user_by_email(wiki_author),
+     do: seed_user.(wiki_author, "Rolf")
+
+Runeshare.Sharing.WikiTileMarkers.sync_as(wiki_author)
