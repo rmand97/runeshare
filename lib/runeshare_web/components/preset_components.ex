@@ -319,11 +319,8 @@ defmodule RuneshareWeb.PresetComponents do
       export default {
         mounted() {
           this.map = L.map(this.el.querySelector("[data-canvas]"), {
-            crs: L.CRS.Simple, minZoom: -2, maxZoom: 5, preferCanvas: true, scrollWheelZoom: false
+            crs: L.CRS.Simple, minZoom: -2, maxZoom: 5, preferCanvas: true
           })
-          // Scrolling the page over the map scrolls the page; once clicked, the wheel zooms.
-          this.map.on("focus", () => this.map.scrollWheelZoom.enable())
-          this.map.on("blur", () => this.map.scrollWheelZoom.disable())
           this.map.attributionControl.setPrefix(false)
           this.map.attributionControl.addAttribution(
             'Map: <a href="https://runescape.wiki/w/Map" target="_blank" rel="noopener">RuneScape Wiki</a>, © Jagex'
