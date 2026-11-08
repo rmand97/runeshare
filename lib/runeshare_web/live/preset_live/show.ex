@@ -391,6 +391,10 @@ defmodule RuneshareWeb.PresetLive.Show do
 
           <.alert_summary :if={@alerts != []} alerts={@alerts} />
 
+          <.panel :if={@tiles != []} id="tile-map-panel" title="Map" icon="hero-map">
+            <.tile_map id="tile-map" tiles={@tiles} />
+          </.panel>
+
           <.panel :if={@shown.description} title="Description">
             <%!-- Inline on purpose: whitespace-pre-line would render template newlines. --%>
             <p class="p-3 text-sm/relaxed whitespace-pre-line text-base-content/80" phx-no-format>{@shown.description}</p>
@@ -516,6 +520,11 @@ defmodule RuneshareWeb.PresetLive.Show do
       shown: shown,
       page_title: shown.title,
       alerts: Sharing.watchdog_alerts(shown.content),
+      tiles:
+        if(socket.assigns.preset.kind == :tile_marker,
+          do: Sharing.tile_marker_tiles(shown.content),
+          else: []
+        ),
       export_versions: Sharing.watchdog_versions(shown.content)
     )
   end

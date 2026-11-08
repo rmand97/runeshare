@@ -85,6 +85,12 @@ config :phoenix_live_view,
   # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.
   root_tag_attribute: "phx-r"
 
+# World map squares behind a tile marker preset's map (the RuneScape Wiki's map
+# tiles, a pinned map version). {z} zoom -2..3, {plane} 0..3, {x}/{y} square.
+config :runeshare,
+       :tile_map_squares_url,
+       "https://maps.runescape.wiki/rs/versions/2026-10-12-a/map_icon_squares/-1/{z}/{plane}_{x}_{y}.png"
+
 # Configure esbuild (the version is required)
 # An edit within this many seconds of the newest version updates that version
 # instead of adding another (typo fixes right after saving). 0 disables it.

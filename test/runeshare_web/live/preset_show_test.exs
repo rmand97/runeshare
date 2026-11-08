@@ -271,6 +271,38 @@ defmodule RuneshareWeb.PresetShowTest do
     end
   end
 
+  describe "tile marker map" do
+    # Real preset from the RuneScape Wiki: 29 tiles on the ground floor, 7 upstairs.
+    @araxxor "TM2IwdhcmF4eG9yHa6G3Ay74aIDAgEBCwEDAQKJBDB3kgUCBgIKAgYCAgMBCwEDAa7f2BUH0q-KGgfNkQEBCwEDAshk__-gUMyMDBTIZP__oFDMjAAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAwAAAAAAB3dhbGsgbncPc3VyZ2UgZnJvbSBoZXJl"
+
+    test "a tile marker preset maps its tiles, with a button per floor", %{conn: conn} do
+      preset = share_preset!(register_user!(), %{kind: :tile_marker, content: @araxxor})
+
+      conn
+      |> visit(~p"/presets/#{preset}")
+      |> assert_has("#tile-map[data-plane='0'][data-tiles*='surge from here']")
+      |> assert_has("#tile-map button.btn-primary", text: "Ground floor")
+      |> assert_has("#tile-map button", text: "1st floor")
+    end
+
+    test "a token that can't be read shows no map", %{conn: conn} do
+      preset = share_preset!(register_user!(), %{kind: :tile_marker})
+
+      conn
+      |> visit(~p"/presets/#{preset}")
+      |> assert_has("#preset-content")
+      |> refute_has("#tile-map")
+    end
+
+    test "Watchdog presets have no map", %{conn: conn} do
+      preset = share_preset!(register_user!())
+
+      conn
+      |> visit(~p"/presets/#{preset}")
+      |> refute_has("#tile-map")
+    end
+  end
+
   describe "version notes" do
     test "each version shows its note", %{conn: conn} do
       author = register_user!()

@@ -5,7 +5,7 @@ defmodule Runeshare.Sharing do
 
   use Ash.Domain, otp_app: :runeshare, extensions: [AshAdmin.Domain, AshPhoenix]
 
-  alias Runeshare.Sharing.{Comment, ImportString, Like, Preset, TagCatalog}
+  alias Runeshare.Sharing.{Comment, ImportString, Like, Preset, TagCatalog, TileMarkerCodec}
   alias Runeshare.Sharing.Preset.Changes.{NormalizeTags, SnapshotVersion}
   alias Runeshare.Sharing.Preset.Validations.CoverImage
 
@@ -131,6 +131,10 @@ defmodule Runeshare.Sharing do
   @spec watchdog_versions(String.t()) ::
           %{plugin_version: String.t() | nil, schema_version: integer()} | nil
   defdelegate watchdog_versions(content), to: ImportString
+
+  @doc "The tiles in a Tilemarkers token (position, floor, colours, label), for its map; `[]` if it can't be read."
+  @spec tile_marker_tiles(String.t()) :: list(TileMarkerCodec.tile())
+  defdelegate tile_marker_tiles(content), to: TileMarkerCodec, as: :tiles
 
   @doc "Tags as saving stores them: trimmed, lowercased, nicknames mapped, deduplicated."
   @spec normalize_tags(list(String.t())) :: list(String.t())

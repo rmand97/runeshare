@@ -207,6 +207,171 @@ defmodule RuneshareWeb.PresetComponents do
     """
   end
 
+  @tile_map_squares Application.compile_env!(:runeshare, :tile_map_squares_url)
+
+  @doc """
+  Interactive map of a tile marker preset's tiles on the RuneScape Wiki's world
+  map, in the preset's own colours and labels. Opens on the floor with the most
+  tiles; buttons switch floors when there is more than one.
+  """
+  attr :id, :string, required: true
+  attr :tiles, :list, required: true, doc: "decoded tiles, `Sharing.tile_marker_tiles/1`"
+
+  def tile_map(assigns) do
+    planes = assigns.tiles |> Enum.frequencies_by(& &1.plane) |> Enum.sort()
+    {initial, _count} = Enum.max_by(planes, &elem(&1, 1))
+
+    tiles =
+      Enum.map(assigns.tiles, fn tile ->
+        fill_alpha = if tile.filled, do: tile.fill_alpha, else: 0
+
+        [
+          tile.x,
+          tile.z,
+          tile.plane,
+          tile.outline,
+          tile.outline_alpha,
+          tile.fill,
+          fill_alpha,
+          tile.label
+        ]
+      end)
+
+    assigns =
+      assign(assigns,
+        planes: Enum.map(planes, &elem(&1, 0)),
+        initial: initial,
+        json: JSON.encode!(tiles),
+        squares: @tile_map_squares
+      )
+
+    ~H"""
+    <div
+      id={@id}
+      phx-hook=".TileMarkerMap"
+      data-tiles={@json}
+      data-squares={@squares}
+      data-plane={@initial}
+      class="relative isolate"
+    >
+      <div
+        id={"#{@id}-canvas"}
+        phx-update="ignore"
+        data-canvas
+        role="region"
+        aria-label="Map of the marked tiles"
+        class="h-72 bg-black sm:h-112"
+      >
+      </div>
+      <div
+        :if={length(@planes) > 1}
+        class="absolute top-2 right-2 join z-1000 shadow"
+        role="group"
+        aria-label="Floor"
+      >
+        <button
+          :for={plane <- @planes}
+          type="button"
+          data-plane={plane}
+          aria-label={"Show #{floor_name(plane)}"}
+          class={["btn join-item btn-xs", plane == @initial && "btn-primary"]}
+          phx-click={
+            JS.remove_class("btn-primary", to: "##{@id} [data-plane]")
+            |> JS.add_class("btn-primary")
+            |> JS.dispatch("tilemap:plane", detail: %{plane: plane})
+          }
+        >
+          {floor_name(plane)}
+        </button>
+      </div>
+    </div>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".TileMarkerMap">
+      import * as L from "@/vendor/leaflet.js"
+
+      // One map unit = one game tile; at zoom 2 a 256px square covers 64 tiles,
+      // as on the wiki. The wiki numbers squares northwards, Leaflet southwards.
+      const Squares = L.TileLayer.extend({
+        getTileUrl(coords) {
+          return L.Util.template(this._url, {
+            z: coords.z, plane: this.options.plane, x: coords.x, y: -coords.y - 1
+          })
+        }
+      })
+
+      // Labels are text from the token: built as text nodes, never as HTML.
+      function labelIcon(text) {
+        const span = document.createElement("span")
+        span.className = "tile-label"
+        span.textContent = text
+        return L.divIcon({html: span, className: "", iconSize: null})
+      }
+
+      // Open on where most tiles are: the ones within 128 tiles of the median tile,
+      // so a stray tile far away doesn't zoom the map out to the whole world.
+      function focus(tiles) {
+        const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)]
+        const mx = median(tiles.map(tile => tile[0]))
+        const mz = median(tiles.map(tile => tile[1]))
+        const near = tiles.filter(([x, z]) => Math.abs(x - mx) <= 128 && Math.abs(z - mz) <= 128)
+        return L.latLngBounds(near.map(([x, z]) => [[z, x], [z + 1, x + 1]]).flat())
+      }
+
+      export default {
+        mounted() {
+          this.map = L.map(this.el.querySelector("[data-canvas]"), {
+            crs: L.CRS.Simple, minZoom: -2, maxZoom: 5, preferCanvas: true, scrollWheelZoom: false
+          })
+          // Scrolling the page over the map scrolls the page; once clicked, the wheel zooms.
+          this.map.on("focus", () => this.map.scrollWheelZoom.enable())
+          this.map.on("blur", () => this.map.scrollWheelZoom.disable())
+          this.map.attributionControl.setPrefix(false)
+          this.map.attributionControl.addAttribution(
+            'Map: <a href="https://runescape.wiki/w/Map" target="_blank" rel="noopener">RuneScape Wiki</a>, © Jagex'
+          )
+          this.squares = new Squares(this.el.dataset.squares, {
+            plane: 0, minZoom: -2, maxNativeZoom: 3, maxZoom: 5, noWrap: true
+          }).addTo(this.map)
+          this.marks = L.layerGroup().addTo(this.map)
+          this.el.addEventListener("tilemap:plane", e => this.show(e.detail.plane))
+          this.load()
+        },
+
+        // Switching version swaps the tiles; other page updates leave them alone.
+        updated() { this.load() },
+
+        destroyed() { this.map.remove() },
+
+        load() {
+          if (this.el.dataset.tiles === this.raw) return
+          this.raw = this.el.dataset.tiles
+          this.tiles = JSON.parse(this.raw)
+          this.show(Number(this.el.dataset.plane))
+        },
+
+        show(plane) {
+          this.squares.options.plane = plane
+          this.squares.redraw()
+          this.marks.clearLayers()
+          const shown = this.tiles.filter(tile => tile[2] === plane)
+          for (const [x, z, , outline, outlineAlpha, fill, fillAlpha, label] of shown) {
+            L.rectangle([[z, x], [z + 1, x + 1]], {
+              color: outline, opacity: outlineAlpha / 255, weight: 1.5,
+              fillColor: fill, fillOpacity: fillAlpha / 255
+            }).addTo(this.marks)
+            if (label) L.marker([z + 0.5, x + 0.5], {icon: labelIcon(label), interactive: false}).addTo(this.marks)
+          }
+          this.map.fitBounds(focus(shown), {padding: [24, 24], maxZoom: 4})
+        }
+      }
+    </script>
+    """
+  end
+
+  defp floor_name(0), do: "Ground floor"
+  defp floor_name(1), do: "1st floor"
+  defp floor_name(2), do: "2nd floor"
+  defp floor_name(3), do: "3rd floor"
+
   @doc "Like, comment and (when the preset has one) copy counts, for list rows."
   attr :preset, :any, required: true
 
