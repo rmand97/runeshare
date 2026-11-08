@@ -73,7 +73,11 @@ config :phoenix_test,
     ecto_sandbox_stop_owner_delay: 100
   ]
 
-# The wiki tile marker sync never reaches the wiki in tests: Req.Test stubs answer.
+# Imports never reach the wiki or Discord in tests: Req.Test stubs answer.
 config :runeshare, :wiki_tile_markers_req_options,
   plug: {Req.Test, Runeshare.Sharing.WikiTileMarkers},
   retry: false
+
+config :runeshare, :discord_req_options, plug: {Req.Test, Runeshare.Discord}, retry: false
+config :runeshare, :discord_bot, token: "test-bot-token"
+config :runeshare, :watchdog_discord, channel_id: "test-channel"

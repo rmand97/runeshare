@@ -50,6 +50,8 @@ defmodule RuneshareWeb.Browser.MobileTapTest do
     conn
     |> visit(~p"/watchdog")
     |> wait_for_liveview()
+    # The listing streams in after mount; wait for the row before measuring it.
+    |> assert_has("#{row} [title=Likes]")
     |> evaluate("""
     const box = document.querySelector('#{row} [title=Likes]').getBoundingClientRect()
     document.elementFromPoint(box.left + 2, box.top + 4).click()

@@ -110,6 +110,12 @@ defmodule RuneshareWeb.PrivacyLive do
             <li>Reports you file, seen only by moderators.</li>
           </ul>
           <p>
+            Some presets are copied in from public community sources: the RuneScape Wiki's
+            Tilemarkers guide and the Watchdog Discord's alarm channel. Their description credits
+            the original creator by the public name shown there and links back to the source.
+            If you made one and want it changed or removed, contact us.
+          </p>
+          <p>
             Server logs record requests (which page, when, and your user id if signed in) to find
             and fix problems. They don't contain your email.
           </p>

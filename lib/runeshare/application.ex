@@ -6,7 +6,7 @@ defmodule Runeshare.Application do
   use Application
 
   alias Runeshare.Repo.SlowQueryLog
-  alias Runeshare.Sharing.WikiTileMarkers
+  alias Runeshare.Sharing.{DiscordWatchdogAlarms, WikiTileMarkers}
 
   @impl true
   def start(_type, _args) do
@@ -22,8 +22,10 @@ defmodule Runeshare.Application do
       # Start to serve requests, typically the last entry
       RuneshareWeb.Endpoint,
       {AshAuthentication.Supervisor, [otp_app: :runeshare]},
-      # Pulls new and changed presets from the RuneScape Wiki once per boot (prod).
-      {Task, &WikiTileMarkers.sync_on_boot/0}
+      # Pull new and changed presets from the RuneScape Wiki and the Watchdog
+      # Discord once per boot (prod; each is off until configured).
+      Supervisor.child_spec({Task, &WikiTileMarkers.sync_on_boot/0}, id: :wiki_sync),
+      Supervisor.child_spec({Task, &DiscordWatchdogAlarms.sync_on_boot/0}, id: :discord_sync)
     ]
 
     # See https://elixir.hexdocs.pm/Supervisor.html

@@ -1,57 +1,44 @@
 defmodule Runeshare.Sharing.WikiTileMarkers do
   @moduledoc """
-  Keeps the tile marker presets from the RuneScape Wiki's
-  [Guide:Tilemarkers](https://runescape.wiki/w/Guide:Tilemarkers) on RuneShare,
-  shared by one configured user.
+  The tile marker presets on the RuneScape Wiki's
+  [Guide:Tilemarkers](https://runescape.wiki/w/Guide:Tilemarkers), mirrored into
+  the import user's shares by `PresetSync` (new rows shared, changed rows edited).
 
-  `sync/1` fetches the page's wikitext, reads every table row (location, author,
-  `TM2` token) and, matched by title among that user's tile marker presets:
-
-  - shares a preset for a row it hasn't seen (`Sharing.import_preset`, which skips
-    the share rate limit),
-  - edits the preset when the wiki's token, notes or section changed (a new
-    version, change note "Synced from the RuneScape Wiki"),
-  - leaves everything else alone. Presets removed from the wiki stay.
-
-  Runs at boot when `config :runeshare, :wiki_tile_markers, author_email: ...` is
-  set (prod, see `config/runtime.exs`), and from `priv/repo/seeds.exs`.
+  Runs at boot when an import user is configured (`config :runeshare, :imports`,
+  prod, see `config/runtime.exs`), and from `priv/repo/seeds.exs`.
   """
 
   alias Runeshare.Accounts
   alias Runeshare.Sharing
-
-  require Logger
+  alias Runeshare.Sharing.PresetSync
 
   @page_url "https://runescape.wiki/w/Guide:Tilemarkers"
   @raw_url @page_url <> "?action=raw"
   @change_note "Synced from the RuneScape Wiki"
 
-  @type entry :: %{
-          title: String.t(),
-          description: String.t(),
-          content: String.t(),
-          tags: list(String.t())
-        }
-
-  @doc "Syncs at boot if an author email is configured; a no-op otherwise."
+  @doc "Syncs at boot if an import user is configured; a no-op otherwise."
   @spec sync_on_boot() :: :ok
   def sync_on_boot do
-    case Application.get_env(:runeshare, :wiki_tile_markers, [])[:author_email] do
+    case PresetSync.author_email() do
       nil -> :ok
       email -> sync_as(email)
     end
   end
 
-  @doc "Syncs as the user with `email`. Logs and skips if they haven't signed in yet."
+  @doc "Fetches the wiki and syncs as the user with `email`."
   @spec sync_as(String.t()) :: :ok
   def sync_as(email) do
-    with {:ok, author} <- Accounts.get_user_by_email(email),
-         {:ok, wikitext} <- fetch() do
-      counts = sync(author, wikitext)
-      Logger.info("wiki tile markers synced: #{inspect(counts)}", actor_id: author.id)
-    else
-      {:error, reason} -> Logger.warning("wiki tile markers not synced: #{describe(reason)}")
-    end
+    PresetSync.sync_as(email, %{
+      name: "wiki tile markers",
+      kind: :tile_marker,
+      change_note: @change_note,
+      fetch: fn ->
+        case fetch() do
+          {:ok, wikitext} -> {:ok, parse(wikitext)}
+          {:error, reason} -> {:error, reason}
+        end
+      end
+    })
   end
 
   @doc "Fetches the guide's wikitext."
@@ -66,68 +53,16 @@ defmodule Runeshare.Sharing.WikiTileMarkers do
     end
   end
 
-  @doc """
-  Creates and updates `author`'s presets to match `wikitext`. Returns how many
-  presets were created, updated, left unchanged or failed.
-  """
-  @spec sync(Accounts.User.t(), String.t()) :: %{atom() => non_neg_integer()}
-  def sync(author, wikitext) do
-    existing =
-      author.id
-      |> Sharing.list_presets_by_author!(actor: author)
-      |> Enum.filter(&(&1.kind == :tile_marker))
-      |> Map.new(&{&1.title, &1})
-
-    counts =
-      wikitext
-      |> parse()
-      |> Enum.map(&upsert(&1, existing[&1.title], author))
-      |> Enum.frequencies()
-
-    Map.merge(%{created: 0, updated: 0, unchanged: 0, failed: 0}, counts)
-  end
-
-  defp upsert(entry, nil, author) do
-    case Sharing.import_preset(Map.put(entry, :kind, :tile_marker), actor: author) do
-      {:ok, _preset} -> :created
-      {:error, error} -> failed(entry, error)
-    end
-  end
-
-  defp upsert(entry, preset, author) do
-    changes =
-      entry
-      |> Map.take([:description, :content, :tags])
-      |> Map.update!(:tags, &Sharing.normalize_tags/1)
-      |> Enum.reject(fn {field, value} -> Map.get(preset, field) == value end)
-      |> Map.new()
-
-    if changes == %{} do
-      :unchanged
-    else
-      case Sharing.edit_preset(preset, Map.put(changes, :change_note, @change_note),
-             actor: author
-           ) do
-        {:ok, _preset} -> :updated
-        {:error, error} -> failed(entry, error)
-      end
-    end
-  end
-
-  defp failed(entry, error) do
-    Logger.warning("wiki tile marker #{inspect(entry.title)} skipped: #{describe(error)}")
-    :failed
-  end
-
-  defp describe(%{__exception__: true} = error), do: Exception.message(error)
-  defp describe(reason), do: inspect(reason)
+  @doc "Creates and updates `author`'s tile marker presets to match `wikitext`."
+  @spec sync(Accounts.User.t(), String.t()) :: PresetSync.counts()
+  def sync(author, wikitext),
+    do: PresetSync.sync(author, :tile_marker, parse(wikitext), @change_note)
 
   @doc """
-  Every preset on the guide page: one per table row with a valid `TM2` token.
-  Titles are the row's location; a location listed more than once gets its
-  author in brackets.
+  Every preset on the guide page: one per table row with a valid `TM2` token,
+  titled by the row's location and credited to the row's author.
   """
-  @spec parse(String.t()) :: list(entry())
+  @spec parse(String.t()) :: list(PresetSync.entry())
   def parse(wikitext) do
     wikitext
     |> String.split("\n")
@@ -136,7 +71,6 @@ defmodule Runeshare.Sharing.WikiTileMarkers do
     |> Map.fetch!(:rows)
     |> Enum.reverse()
     |> Enum.flat_map(&to_entry/1)
-    |> disambiguate_titles()
   end
 
   defp read_line(line, state), do: read(classify(line), state)
@@ -196,7 +130,7 @@ defmodule Runeshare.Sharing.WikiTileMarkers do
       [
         %{
           title: title |> String.trim() |> String.slice(0, 100),
-          author: author,
+          credit: author,
           description: description(author, Enum.join(notes)),
           content: token,
           tags: tags(row.h2, row.h3)
@@ -241,22 +175,6 @@ defmodule Runeshare.Sharing.WikiTileMarkers do
     |> Enum.concat()
     |> Enum.map(&String.slice(&1, 0, 24))
     |> Sharing.normalize_tags()
-  end
-
-  defp disambiguate_titles(entries) do
-    counts = Enum.frequencies_by(entries, & &1.title)
-
-    entries
-    |> Enum.map(fn entry ->
-      title =
-        if counts[entry.title] > 1,
-          do: "#{entry.title} (#{entry.author})",
-          else: entry.title
-
-      %{entry | title: title}
-    end)
-    |> Enum.uniq_by(& &1.title)
-    |> Enum.map(&Map.delete(&1, :author))
   end
 
   # Wikitext to the plain text a user would read: links and formatting

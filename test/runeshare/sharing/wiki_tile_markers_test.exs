@@ -66,7 +66,8 @@ defmodule Runeshare.Sharing.WikiTileMarkersTest do
     test "reads each row's title, credited author, notes, token and section tags" do
       assert [first, second, raksha] = WikiTileMarkers.parse(wikitext())
 
-      assert first.title == "Anachronia agility (Voijehna (RS Reddit))"
+      assert first.title == "Anachronia agility"
+      assert first.credit == "Voijehna (RS Reddit)"
       assert first.content == @token_a
       assert first.tags == ["agility", "skilling", "rs-wiki"]
 
@@ -75,7 +76,7 @@ defmodule Runeshare.Sharing.WikiTileMarkersTest do
 
       assert first.description =~ "Click the surge tiles.\nThen dive."
 
-      assert second.title == "Anachronia agility (Jome)"
+      assert second.credit == "Jome"
       assert second.description =~ "Created by Jome."
 
       assert raksha.title == "Raksha arena"
@@ -106,6 +107,7 @@ defmodule Runeshare.Sharing.WikiTileMarkersTest do
       assert updated.content == @token_b
       assert updated.version == 2
       assert presets["Raksha arena"].description =~ "New notes"
+      assert Map.has_key?(presets, "Anachronia agility (Jome)")
 
       assert [%{note: "Synced from the RuneScape Wiki"} | _older] =
                Sharing.list_preset_versions!(updated.id, actor: author)

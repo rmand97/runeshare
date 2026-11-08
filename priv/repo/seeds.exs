@@ -102,11 +102,17 @@ end
 
 # Moderation: dev admins come from ADMIN_EMAILS in .env (e.g. ADMIN_EMAILS=you@gmail.com).
 
-# The RuneScape Wiki's tile marker presets (Guide:Tilemarkers), as prod syncs them
-# at boot. Needs network; logs a warning and moves on without it.
+# Imported presets, as prod syncs them at boot: the RuneScape Wiki's tile markers
+# (Guide:Tilemarkers) and, when DISCORD_BOT_TOKEN and WATCHDOG_DISCORD_CHANNEL_ID
+# are set, the Watchdog Discord's alarms. Needs network; logs a warning and moves
+# on without it.
 wiki_author = "raflnatorr@gmail.com"
 
 with {:error, _not_found} <- Runeshare.Accounts.get_user_by_email(wiki_author),
      do: seed_user.(wiki_author, "Rolf")
 
 Runeshare.Sharing.WikiTileMarkers.sync_as(wiki_author)
+
+if Application.get_env(:runeshare, :watchdog_discord, [])[:channel_id] &&
+     Runeshare.Discord.configured?(),
+   do: Runeshare.Sharing.DiscordWatchdogAlarms.sync_as(wiki_author)

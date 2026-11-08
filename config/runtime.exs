@@ -127,6 +127,16 @@ if config_env() in [:dev, :prod] do
          |> Enum.map(&(&1 |> String.trim() |> String.downcase()))
 end
 
+# The RuneShare Discord bot reads the Watchdog Discord's alarm channel
+# (Runeshare.Sharing.DiscordWatchdogAlarms). Both unset = off.
+#   Bot token: https://discord.com/developers/applications > Bot > Reset Token
+#   Channel id: Discord developer mode, right-click the channel > Copy Channel ID
+if config_env() in [:dev, :prod] do
+  config :runeshare, :discord_bot, token: System.get_env("DISCORD_BOT_TOKEN")
+
+  config :runeshare, :watchdog_discord, channel_id: System.get_env("WATCHDOG_DISCORD_CHANNEL_ID")
+end
+
 # OAuth sign-in providers. Test env uses fixed fake values from config/test.exs.
 # Each provider's redirect/callback URL is `<base url>/auth/user/<provider>/callback`:
 #   Google  https://console.cloud.google.com/apis/credentials
@@ -232,11 +242,11 @@ if config_env() == :prod do
   # Every other host name (www., the fly.dev name) redirects here.
   config :runeshare, :canonical_host, host
 
-  # The RuneScape Wiki's Guide:Tilemarkers presets are synced at boot and shared by
-  # this user (skipped until they have signed in once). Empty disables the sync.
-  config :runeshare, :wiki_tile_markers,
+  # Presets imported at boot (RuneScape Wiki tile markers, Watchdog Discord alarms)
+  # are shared by this user; skipped until they have signed in once. Empty disables.
+  config :runeshare, :imports,
     author_email:
-      (case System.get_env("WIKI_TILE_MARKERS_AUTHOR", "raflnatorr@gmail.com") do
+      (case System.get_env("IMPORTS_AUTHOR", "raflnatorr@gmail.com") do
          "" -> nil
          email -> email
        end)
