@@ -240,6 +240,57 @@
   }
 }
 
+/* Tap targets. Inside `utilities` like `interactive` above: beats DaisyUI, loses to
+   utility classes in templates. */
+@layer utilities {
+  @layer touch {
+    /* Stretched row link: a list row's title link (`row-link`) covers the whole row,
+       so tapping anywhere on it opens the preset. The row's other links and buttons
+       (author, tags, copy, edit) sit above that cover and keep their own target. */
+    :is(tr, li):has(.row-link) {
+      position: relative;
+    }
+
+    /* z-index lifts the cover over icons, whose mask-image paints them above
+       an unstacked ::after. */
+    .row-link::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    :is(tr, li):has(.row-link) :is(a, button, summary):not(.row-link) {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Touch screens: dense controls keep their look but get a finger-sized hit area
+       from an invisible ::after (~44px for buttons). Expanded vertically only, so
+       neighbours in a `join` don't steal each other's taps; square icon buttons
+       stand alone and grow on all sides. `tap` opts small text links in. */
+    @media (pointer: coarse) {
+      :is(.btn-xs, .btn-sm, a.badge, .tap) {
+        position: relative;
+      }
+
+      :is(.btn-xs, .btn-sm, a.badge, .tap)::after {
+        content: "";
+        position: absolute;
+        inset: -8px 0;
+      }
+
+      :is(.btn-xs, .btn-sm).btn-square::after {
+        inset: -12px;
+      }
+
+      :is(a.badge, .tap)::after {
+        inset: -10px -2px;
+      }
+    }
+  }
+}
+
 /* LiveToast's close button is styled black-on-white, invisible in dark mode. Unlayered
    because its utility classes would otherwise win. */
 [phx-hook="LiveToast"] > button[aria-label="close"] {

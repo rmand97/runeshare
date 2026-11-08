@@ -132,7 +132,7 @@ defmodule RuneshareWeb.Layouts do
       {render_slot(@inner_block)}
     </main>
 
-    <footer class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-1.5 gap-y-1 px-4 pt-2 pb-6 text-[11px] text-base-content/60">
+    <footer class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-1.5 gap-y-3 px-4 pt-2 pb-6 text-[11px] text-base-content/60 sm:gap-y-1">
       <span>RuneShare · community-made, not affiliated with Jagex.</span>
       <span aria-hidden="true">·</span>
       <a
@@ -140,7 +140,7 @@ defmodule RuneshareWeb.Layouts do
         href="https://github.com/rmand97/runeshare"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
+        class="tap inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
       >
         <.icon name="hero-code-bracket" class="size-3.5" /> Source on GitHub
       </a>
@@ -150,7 +150,7 @@ defmodule RuneshareWeb.Layouts do
         href="https://github.com/rmand97/runeshare/issues/new/choose"
         target="_blank"
         rel="noopener noreferrer"
-        class="inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
+        class="tap inline-flex items-center gap-1 underline-offset-2 sm:hover:text-primary sm:hover:underline"
       >
         <.icon name="hero-chat-bubble-left-ellipsis" class="size-3.5" /> Report a problem
       </a>
@@ -158,7 +158,7 @@ defmodule RuneshareWeb.Layouts do
       <.link
         id="footer-privacy"
         navigate={~p"/privacy"}
-        class="underline-offset-2 sm:hover:text-primary sm:hover:underline"
+        class="tap underline-offset-2 sm:hover:text-primary sm:hover:underline"
       >
         Privacy
       </.link>

@@ -362,7 +362,7 @@ defmodule RuneshareWeb.PresetComponents do
     <nav aria-label="Breadcrumb" class="text-xs text-base-content/65">
       <%= for {{label, path}, index} <- Enum.with_index(@crumbs) do %>
         <span :if={index > 0} aria-hidden="true">/</span>
-        <.link :if={path} navigate={path} class="sm:hover:text-primary">{label}</.link>
+        <.link :if={path} navigate={path} class="tap sm:hover:text-primary">{label}</.link>
         <span :if={!path}>{label}</span>
       <% end %>
     </nav>

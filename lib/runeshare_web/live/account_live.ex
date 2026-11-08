@@ -137,7 +137,7 @@ defmodule RuneshareWeb.AccountLive do
             <.link
               :for={kind <- Sharing.preset_kinds()}
               navigate={new_path(kind)}
-              class="text-xs text-primary sm:hover:underline"
+              class="tap text-xs text-primary sm:hover:underline"
             >
               + {kind_short(kind)}
             </.link>
@@ -172,7 +172,7 @@ defmodule RuneshareWeb.AccountLive do
                   <div class="flex items-center gap-2">
                     <.link
                       navigate={~p"/presets/#{preset}"}
-                      class="truncate text-sm font-medium sm:hover:text-primary"
+                      class="row-link truncate text-sm font-medium sm:hover:text-primary"
                     >
                       {preset.title}
                     </.link>
@@ -225,7 +225,7 @@ defmodule RuneshareWeb.AccountLive do
                 <div class="min-w-0 flex-1">
                   <.link
                     navigate={~p"/presets/#{preset}"}
-                    class="block truncate text-sm font-medium sm:hover:text-primary"
+                    class="row-link block truncate text-sm font-medium sm:hover:text-primary"
                   >
                     {preset.title}
                   </.link>

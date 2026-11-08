@@ -130,7 +130,7 @@ defmodule RuneshareWeb.AuthorLive do
                       </span>
                       <.link
                         navigate={~p"/presets/#{preset}"}
-                        class="truncate text-sm font-medium sm:hover:text-primary"
+                        class="row-link truncate text-sm font-medium sm:hover:text-primary"
                       >
                         {preset.title}
                       </.link>

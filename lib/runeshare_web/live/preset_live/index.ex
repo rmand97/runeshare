@@ -134,7 +134,8 @@ defmodule RuneshareWeb.PresetLive.Index do
           </label>
         </form>
         <div class="flex flex-wrap gap-2">
-          <div class="join">
+          <%!-- Phones switch kind from the header menu; one row of sort tabs is enough. --%>
+          <div class="join max-sm:hidden">
             <.link
               :for={kind <- Sharing.preset_kinds()}
               navigate={kind_path(kind)}
@@ -143,7 +144,7 @@ defmodule RuneshareWeb.PresetLive.Index do
               {kind_short(kind)}
             </.link>
           </div>
-          <nav class="join" aria-label="Sort">
+          <nav class="join w-full sm:w-auto" aria-label="Sort">
             <.link
               :for={
                 {sort, label} <- [
@@ -155,7 +156,7 @@ defmodule RuneshareWeb.PresetLive.Index do
               id={"sort-#{sort}"}
               patch={list_path(@filters, sort: sort, offset: 0)}
               aria-current={if sort == @sort, do: "true"}
-              class={["btn join-item btn-sm", sort == @sort && "btn-primary"]}
+              class={["btn join-item flex-1 btn-sm sm:flex-none", sort == @sort && "btn-primary"]}
             >
               {label}
             </.link>
@@ -221,7 +222,7 @@ defmodule RuneshareWeb.PresetLive.Index do
                       <div class="flex items-center gap-2">
                         <.link
                           navigate={~p"/presets/#{preset}"}
-                          class="truncate font-medium sm:hover:text-primary"
+                          class="row-link truncate font-medium sm:hover:text-primary"
                         >
                           {preset.title}
                         </.link>

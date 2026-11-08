@@ -155,7 +155,7 @@ defmodule RuneshareWeb.HomeLive do
     ~H"""
     <.panel id={"newest-#{@kind}"} title={"Newest #{kind_short(@kind)}"} icon={kind_icon(@kind)}>
       <:actions>
-        <.link navigate={kind_path(@kind)} class="text-xs text-primary sm:hover:underline">
+        <.link navigate={kind_path(@kind)} class="tap text-xs text-primary sm:hover:underline">
           View all
         </.link>
       </:actions>
@@ -180,7 +180,7 @@ defmodule RuneshareWeb.HomeLive do
             <div class="min-w-0 flex-1">
               <.link
                 navigate={~p"/presets/#{preset}"}
-                class="block truncate text-sm font-medium sm:hover:text-primary"
+                class="row-link block truncate text-sm font-medium sm:hover:text-primary"
               >
                 {preset.title}
               </.link>
