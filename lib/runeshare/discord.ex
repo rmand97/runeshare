@@ -22,7 +22,8 @@ defmodule Runeshare.Discord do
   @doc """
   Every message in `channel_id`, oldest first, each with `"guild_id"` and
   `"channel_id"` set. For a forum channel, the messages of every post (active and
-  archived), each with `"thread_name"` set.
+  archived), each with `"post"`: `%{"id", "name", "owner_id", "tags"}` (the post's
+  forum tag names).
   """
   @spec channel_messages(String.t()) :: {:ok, list(message())} | {:error, term()}
   def channel_messages(channel_id) do
@@ -48,20 +49,26 @@ defmodule Runeshare.Discord do
       {:ok, archived} ->
         (active ++ archived)
         |> Enum.uniq_by(& &1["id"])
-        |> Enum.reduce_while({:ok, []}, &read_post(&1, &2, forum["guild_id"]))
+        |> Enum.reduce_while({:ok, []}, &read_post(&1, &2, forum))
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp read_post(thread, {:ok, acc}, guild_id) do
-    case history(Map.put(thread, "guild_id", guild_id)) do
-      {:ok, messages} ->
-        {:cont, {:ok, acc ++ Enum.map(messages, &Map.put(&1, "thread_name", thread["name"]))}}
+  defp read_post(thread, {:ok, acc}, forum) do
+    tag_names = Map.new(forum["available_tags"] || [], &{&1["id"], &1["name"]})
 
-      {:error, reason} ->
-        {:halt, {:error, reason}}
+    post = %{
+      "id" => thread["id"],
+      "name" => thread["name"],
+      "owner_id" => thread["owner_id"],
+      "tags" => for(id <- thread["applied_tags"] || [], tag_names[id], do: tag_names[id])
+    }
+
+    case history(Map.put(thread, "guild_id", forum["guild_id"])) do
+      {:ok, messages} -> {:cont, {:ok, acc ++ Enum.map(messages, &Map.put(&1, "post", post))}}
+      {:error, reason} -> {:halt, {:error, reason}}
     end
   end
 

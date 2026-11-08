@@ -1,6 +1,8 @@
 defmodule RuneshareWeb.Browser.MobileTapTest do
+  # Not async: every preset shared by a concurrent test reloads the listing, which
+  # can swap a row out between measuring it and tapping it.
   use PhoenixTest.Playwright.Case,
-    async: true,
+    async: false,
     browser_context_opts: [viewport: %{width: 375, height: 740}, has_touch: true, is_mobile: true]
 
   use RuneshareWeb, :verified_routes

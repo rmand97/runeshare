@@ -9,10 +9,19 @@ defmodule Runeshare.Sharing.DiscordWatchdogAlarmsTest do
 
   @cdn "https://cdn.discordapp.com/attachments/1/2/alarm.json"
 
+  # Real export, as shared in r/runescape's "Watchdog alerts" thread.
+  @inventory_alert String.trim(~S"""
+                   {"schemaVersion":1,"entries":[{"kind":"alert","enabled":true,"name":"Inventory nearly full (25 spaces used)","graph":{"version":1,"nodes":[{"controls":{"color":{"g":255,"r":20,"a":127,"b":0},"inShape":"instant","outShape":"instant","dismissOn":"both"},"id":7,"type":"action.screen_flash"},{"controls":{"condition":false},"id":9,"type":"std.branch"},{"controls":{"container":93},"id":11,"type":"trigger.inventory"},{"controls":{"operation":">=","a":0,"b":25},"id":16,"type":"std.compare"},{"controls":{"bus":"VOICEOVER","soundId":3964},"id":20,"type":"action.sound"},{"controls":{"theme":"parchment","hold":4.0,"body":"Inventory nearly full","title":"Inventory"},"id":37,"type":"action.popup"}],"connections":[{"toPin":"in","fromNode":9,"fromPin":"true","toNode":37},{"toPin":"show","fromNode":9,"fromPin":"true","toNode":7},{"toPin":"in","fromNode":9,"fromPin":"true","toNode":20},{"toPin":"in","fromNode":11,"fromPin":"out","toNode":9},{"toPin":"a","fromNode":11,"fromPin":"usedSlots","toNode":16},{"toPin":"condition","fromNode":16,"fromPin":"result","toNode":9}]},"layout":[{"x":1726,"id":7,"y":155},{"x":851,"id":9,"y":186},{"x":16,"id":11,"y":184},{"x":415,"id":16,"y":322},{"x":1486,"id":20,"y":419},{"x":1469,"id":37,"y":753}]}],"pluginVersion":"1.0.0"}
+                   """)
+
   defp message(id, author, content, attachments \\ []) do
     %{
       "id" => id,
-      "author" => %{"username" => String.downcase(author), "global_name" => author},
+      "author" => %{
+        "id" => "user-" <> String.downcase(author),
+        "username" => String.downcase(author),
+        "global_name" => author
+      },
       "content" => content,
       "attachments" => attachments
     }
@@ -35,10 +44,17 @@ defmodule Runeshare.Sharing.DiscordWatchdogAlarmsTest do
     end)
   end
 
+  # A forum channel's one post: started by Zezima, tagged Combat.
   defp archived(conn) do
     ReqTest.json(conn, %{
       "threads" => [
-        %{"id" => "post-1", "parent_id" => "test-channel", "name" => "Croesus alarms"}
+        %{
+          "id" => "post-1",
+          "parent_id" => "test-channel",
+          "name" => "Boss timer",
+          "owner_id" => "user-zezima",
+          "applied_tags" => ["tag-combat"]
+        }
       ],
       "has_more" => false
     })
@@ -80,6 +96,20 @@ defmodule Runeshare.Sharing.DiscordWatchdogAlarmsTest do
 
       assert telos.description =~ "Created by Durial"
       assert prayer.tags == ["discord"]
+    end
+
+    test "finds an export pasted inline after the poster's own words" do
+      author = register_user!(email: "discord-inline@example.com")
+
+      stub_discord(text_channel(), [
+        message("1", "lc_steve", "With sound and popup:\n" <> @inventory_alert <> "\nEnjoy!")
+      ])
+
+      capture_log(fn -> DiscordWatchdogAlarms.sync_as("discord-inline@example.com") end)
+
+      assert %{"Inventory nearly full (25 spaces used)" => alarm} = alarms(author)
+      assert alarm.content == @inventory_alert
+      assert alarm.description =~ ~r/\(https:[^)]+\)\.\n\nWith sound and popup:\n+Enjoy!\z/
     end
 
     test "a second run changes nothing; an edited post updates the preset" do
@@ -138,17 +168,72 @@ defmodule Runeshare.Sharing.DiscordWatchdogAlarmsTest do
   end
 
   describe "sync_as/1, forum channel" do
-    test "reads every post and titles alarms by the post's title" do
-      author = register_user!(email: "discord-forum@example.com")
+    defp forum do
+      %{
+        "id" => "test-channel",
+        "guild_id" => "guild-1",
+        "type" => 15,
+        "available_tags" => [
+          %{"id" => "tag-combat", "name" => "Combat"},
+          %{"id" => "tag-skilling", "name" => "Skilling"}
+        ]
+      }
+    end
 
-      stub_discord(%{"id" => "test-channel", "guild_id" => "guild-1", "type" => 15}, [
-        message("10", "Zezima", code_block(watchdog_export("Harp tune")))
-      ])
+    @message_txt "https://cdn.discordapp.com/attachments/1/2/message.txt"
+
+    test "one preset per post: the creator's export, the post's title, opening words and tags" do
+      author = register_user!(email: "discord-forum@example.com")
+      boss_timer = watchdog_export("Boss timer alert")
+
+      stub_discord(
+        forum(),
+        # Newest first, as Discord sends them.
+        [
+          message("4", "Durial", "My version: " <> watchdog_export("Durial timer")),
+          message("3", "Zezima", "Too long to paste, so here it is as a file.", [
+            %{"filename" => "message.txt", "url" => @message_txt, "size" => 4000}
+          ]),
+          message("2", "Zezima", "Screenshot of the graph:", [
+            %{
+              "filename" => "image.png",
+              "url" => "https://cdn.discordapp.com/x.png",
+              "size" => 120_000
+            }
+          ]),
+          message("1", "Zezima", "Warns 10 seconds before the next boss phase.")
+        ],
+        %{@message_txt => boss_timer}
+      )
 
       capture_log(fn -> DiscordWatchdogAlarms.sync_as("discord-forum@example.com") end)
 
-      assert %{"Croesus alarms" => alarm} = alarms(author)
-      assert alarm.description =~ "https://discord.com/channels/guild-1/post-1/10"
+      assert [alarm] = Map.values(alarms(author))
+      assert alarm.title == "Boss timer"
+      assert alarm.content == boss_timer
+      assert alarm.tags == ["discord", "combat"]
+
+      assert alarm.description ==
+               "Created by Zezima on the Watchdog Discord (https://discord.com/channels/guild-1/post-1)." <>
+                 "\n\nWarns 10 seconds before the next boss phase."
+    end
+
+    test "a post with several alarms gets one preset each; a later export updates one" do
+      author = register_user!(email: "discord-forum-many@example.com")
+      newer_flash = String.replace(watchdog_export("Flash"), "1.0.0", "1.1.0")
+
+      stub_discord(forum(), [
+        message("3", "Zezima", "Fixed the flash: " <> newer_flash),
+        message("2", "Zezima", code_block(watchdog_export("Sound"))),
+        message("1", "Zezima", "Two alarms: " <> watchdog_export("Flash"))
+      ])
+
+      capture_log(fn -> DiscordWatchdogAlarms.sync_as("discord-forum-many@example.com") end)
+
+      assert %{
+               "Boss timer – Flash" => %{content: ^newer_flash},
+               "Boss timer – Sound" => _sound
+             } = alarms(author)
     end
   end
 end

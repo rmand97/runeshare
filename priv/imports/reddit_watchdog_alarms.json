@@ -1,0 +1,71 @@
+{
+  "source": "r/runescape thread \"Watchdog alerts\" (https://www.reddit.com/r/runescape/comments/1xom5j6/watchdog_alerts/), saved 2026-11-08",
+  "alarms": [
+    {
+      "title": "Seren spirit",
+      "author": "lc_steve",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/watchdog_alerts/",
+      "notes": "I was wondering what people had made so far with the watchdog plugin. If there is somewhere else where people are sharing their watchdog plugin scripts please tell me.\nI've quickly made a seren spirit tracker. And thought i'd share it. Please feel free to share your watchdog alerts you find useful here.",
+      "tags": [
+        "reddit",
+        "skilling"
+      ],
+      "content": "{\"schemaVersion\":1,\"entries\":[{\"kind\":\"alert\",\"enabled\":true,\"name\":\"Seren spirit\",\"graph\":{\"version\":1,\"nodes\":[{\"controls\":{\"loops\":1,\"volume\":100,\"resource\":\"league_easy_task\",\"bus\":\"VOICEOVER\"},\"id\":5,\"type\":\"action.custom_sound\"},{\"controls\":{\"color\":{\"g\":0,\"b\":0,\"a\":127,\"r\":255},\"dismissOn\":\"both\",\"outShape\":\"instant\",\"inShape\":\"instant\"},\"id\":6,\"type\":\"action.screen_flash\"},{\"controls\":{\"condition\":true},\"id\":7,\"type\":\"std.branch\"},{\"controls\":{\"kind\":\"any\",\"nameMatch\":{\"mode\":\"substring\",\"needle\":\"Seren spirit\"},\"mineOnly\":false},\"id\":11,\"type\":\"trigger.entity_spawn\"}],\"connections\":[{\"toNode\":6,\"fromNode\":7,\"fromPin\":\"true\",\"toPin\":\"show\"},{\"toNode\":5,\"fromNode\":7,\"fromPin\":\"true\",\"toPin\":\"in\"},{\"toNode\":7,\"fromNode\":11,\"fromPin\":\"Spawned\",\"toPin\":\"in\"}]},\"layout\":[{\"x\":852,\"id\":5,\"y\":159},{\"x\":857,\"id\":6,\"y\":-39},{\"x\":417,\"id\":7,\"y\":4},{\"x\":-213,\"id\":11,\"y\":-1}]}],\"pluginVersion\":\"1.0.0\"}"
+    },
+    {
+      "title": "Afk Alert",
+      "author": "Pertinate",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/comment/19s7dpfj79dr6/",
+      "notes": "Unfortunately there's no way to reset the counter from activity.",
+      "tags": [
+        "reddit",
+        "afk"
+      ],
+      "content": "{\"schemaVersion\":1,\"pluginVersion\":\"1.0.0\",\"entries\":[{\"kind\":\"alert\",\"enabled\":true,\"layout\":[{\"y\":316,\"x\":1543,\"id\":9},{\"y\":110,\"x\":344,\"id\":10},{\"y\":95,\"x\":746,\"id\":11},{\"y\":318,\"x\":1125,\"id\":14},{\"y\":324,\"x\":796,\"id\":17},{\"y\":119,\"x\":-17,\"id\":24}],\"name\":\"Afk Alert\",\"graph\":{\"version\":1,\"connections\":[{\"fromNode\":10,\"toNode\":11,\"toPin\":\"a\",\"fromPin\":\"count\"},{\"fromNode\":10,\"toNode\":17,\"toPin\":\"in\",\"fromPin\":\"out\"},{\"fromNode\":11,\"toNode\":17,\"toPin\":\"condition\",\"fromPin\":\"result\"},{\"fromNode\":14,\"toNode\":9,\"toPin\":\"in\",\"fromPin\":\"then1\"},{\"fromNode\":14,\"toNode\":10,\"toPin\":\"reset\",\"fromPin\":\"then2\"},{\"fromNode\":17,\"toNode\":14,\"toPin\":\"in\",\"fromPin\":\"true\"},{\"fromNode\":24,\"toNode\":10,\"toPin\":\"in\",\"fromPin\":\"out\"}],\"nodes\":[{\"controls\":{\"resource\":\"league_master_task\",\"loops\":0,\"volume\":50,\"bus\":\"SFX\"},\"type\":\"action.custom_sound\",\"name\":\"Alert\",\"id\":9},{\"controls\":{\"step\":1,\"start\":0},\"type\":\"std.counter\",\"name\":\"Tick Counter\",\"id\":10},{\"controls\":{\"b\":1400,\"a\":0,\"operation\":\">=\"},\"type\":\"std.compare\",\"name\":\"Alert When\",\"id\":11},{\"controls\":[],\"type\":\"std.sequence\",\"name\":\"Run\",\"id\":14},{\"controls\":{\"condition\":false},\"type\":\"std.branch\",\"name\":\"Alert Matched\",\"id\":17},{\"controls\":{\"interval\":1},\"type\":\"trigger.server_logic\",\"name\":\"Server Tick\",\"id\":24}]}}]}"
+    },
+    {
+      "title": "Smithing Heat",
+      "author": "BobotheClown555",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/comment/19s8j8wj6bxlx/",
+      "notes": "I made this one for monitoring smithing heat. I intentionally made it extremely annoying for dxp and to try to figure out the counter object so if you just want it to ring once, strip out the counter and just wire the top game message directly to the alarm. Also the counter behaves a bit strangely. The reset doesn't latch in until the next 'in' rather than immediately triggering a reset to 0. Thought that was rather unexpected and strange. I would want it to immediately reset to 0, not reset and increment to 1 on the next tick. I saw the author was in this thread but if there is somewhere to submit feedback/bug reports I can put it there.\n\nEDIT: Changed game tick interval to 2, removed the trigger line from counter to branch, updated the full heat message and reset alarm if the current item finishes smithing",
+      "tags": [
+        "reddit",
+        "smithing"
+      ],
+      "content": "{\"schemaVersion\":1,\"entries\":[{\"enabled\":true,\"kind\":\"alert\",\"name\":\"Smithing Heat\",\"graph\":{\"version\":1,\"connections\":[{\"toNode\":10,\"toPin\":\"in\",\"fromNode\":3,\"fromPin\":\"out\"},{\"toNode\":12,\"toPin\":\"a\",\"fromNode\":10,\"fromPin\":\"count\"},{\"toNode\":13,\"toPin\":\"condition\",\"fromNode\":12,\"fromPin\":\"result\"},{\"toNode\":7,\"toPin\":\"in\",\"fromNode\":13,\"fromPin\":\"true\"},{\"toNode\":10,\"toPin\":\"in\",\"fromNode\":14,\"fromPin\":\"out\"},{\"toNode\":10,\"toPin\":\"reset\",\"fromNode\":14,\"fromPin\":\"out\"},{\"toNode\":13,\"toPin\":\"in\",\"fromNode\":15,\"fromPin\":\"out\"},{\"toNode\":25,\"toPin\":\"in\",\"fromNode\":19,\"fromPin\":\"out\"},{\"toNode\":22,\"toPin\":\"snapshot\",\"fromNode\":19,\"fromPin\":\"prevSnapshot\"},{\"toNode\":21,\"toPin\":\"snapshot\",\"fromNode\":19,\"fromPin\":\"snapshot\"},{\"toNode\":23,\"toPin\":\"b\",\"fromNode\":21,\"fromPin\":\"count\"},{\"toNode\":23,\"toPin\":\"a\",\"fromNode\":22,\"fromPin\":\"count\"},{\"toNode\":25,\"toPin\":\"condition\",\"fromNode\":23,\"fromPin\":\"result\"},{\"toNode\":10,\"toPin\":\"in\",\"fromNode\":25,\"fromPin\":\"true\"},{\"toNode\":10,\"toPin\":\"reset\",\"fromNode\":25,\"fromPin\":\"true\"}],\"nodes\":[{\"type\":\"trigger.game_message\",\"id\":3,\"controls\":{\"type\":\"any\",\"contains\":{\"needle\":\"Your item has cooled down\",\"mode\":\"substring\"}}},{\"type\":\"action.sound\",\"id\":7,\"controls\":{\"soundId\":4890,\"bus\":\"MASTER\"}},{\"type\":\"std.counter\",\"id\":10,\"controls\":{\"step\":1,\"start\":0}},{\"type\":\"std.compare\",\"id\":12,\"controls\":{\"a\":0,\"operation\":\">\",\"b\":1}},{\"type\":\"std.branch\",\"id\":13,\"controls\":{\"condition\":false}},{\"type\":\"trigger.game_message\",\"id\":14,\"controls\":{\"type\":\"game\",\"contains\":{\"needle\":\"Your unfinished item is at full heat\",\"mode\":\"pattern\"}}},{\"type\":\"trigger.server_logic\",\"id\":15,\"controls\":{\"interval\":2}},{\"type\":\"trigger.inventory\",\"id\":19,\"controls\":{\"container\":93}},{\"type\":\"inventory.item_count\",\"id\":21,\"controls\":{\"nameMatch\":{\"needle\":\"Unfinished smithing item\",\"mode\":\"substring\"},\"noteFilter\":\"both\"}},{\"type\":\"inventory.item_count\",\"id\":22,\"controls\":{\"nameMatch\":{\"needle\":\"Unfinished smithing item\",\"mode\":\"substring\"},\"noteFilter\":\"both\"}},{\"type\":\"std.compare\",\"id\":23,\"controls\":{\"a\":0,\"operation\":\">\",\"b\":0}},{\"type\":\"std.branch\",\"id\":25,\"controls\":{\"condition\":false}}]},\"layout\":[{\"y\":124,\"x\":-209,\"id\":3},{\"y\":176,\"x\":865,\"id\":7},{\"y\":365,\"x\":219,\"id\":10},{\"y\":349,\"x\":515,\"id\":12},{\"y\":178,\"x\":591,\"id\":13},{\"y\":292,\"x\":-241,\"id\":14},{\"y\":86,\"x\":255,\"id\":15},{\"y\":434,\"x\":-869,\"id\":19},{\"y\":712,\"x\":-616,\"id\":21},{\"y\":530,\"x\":-579,\"id\":22},{\"y\":677,\"x\":-309,\"id\":23},{\"y\":502,\"x\":-83,\"id\":25}]}],\"pluginVersion\":\"1.0.0\"}"
+    },
+    {
+      "title": "Fort Construction hotspot",
+      "author": "Aw0011",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/comment/19s9a1r1ptp0k/",
+      "notes": "I made a simple one for fort optimal hotspot construction. You have to manually configure it based on which hotspot you are doing by changing the xp value comparison to about 30% more than a regular hotpot's xp drop. Unfortunately it only fires off after an xp drop in a regular hotspot, so your Perfect Build percentage is slowly going to go down. Also, if there is any better sound effects to use than the default town cirer bell ring, i would love to know.",
+      "tags": [
+        "reddit",
+        "construction"
+      ],
+      "content": "{\"schemaVersion\":1,\"pluginVersion\":\"1.0.0\",\"entries\":[{\"enabled\":true,\"name\":\"Fort Construction hotspot\",\"kind\":\"alert\",\"layout\":[{\"y\":173,\"x\":248,\"id\":13},{\"y\":254,\"x\":539,\"id\":15},{\"y\":175,\"x\":844,\"id\":16},{\"y\":174,\"x\":1125,\"id\":17},{\"y\":173,\"x\":1417,\"id\":18},{\"y\":2,\"x\":1738,\"id\":19},{\"y\":197,\"x\":1739,\"id\":20},{\"y\":388,\"x\":1748,\"id\":21}],\"graph\":{\"version\":1,\"nodes\":[{\"controls\":{\"skillFilter\":22},\"id\":13,\"type\":\"trigger.xp_drop\"},{\"controls\":{\"a\":0,\"operation\":\"<\",\"b\":538},\"id\":15,\"type\":\"std.compare\"},{\"controls\":{\"condition\":false},\"id\":16,\"type\":\"std.branch\"},{\"controls\":{\"startClosed\":false},\"id\":17,\"type\":\"std.doonce\"},{\"controls\":[],\"id\":18,\"type\":\"std.sequence\"},{\"controls\":{\"title\":\"Notification\",\"body\":\"Optimal hotspot has moved!\",\"hold\":4.0,\"icon\":937,\"theme\":\"parchment\"},\"id\":19,\"type\":\"action.popup\"},{\"controls\":{\"bus\":\"SFX\",\"soundId\":3964},\"id\":20,\"type\":\"action.sound\"},{\"controls\":{\"color\":{\"a\":56,\"b\":0,\"g\":0,\"r\":255},\"inShape\":\"instant\",\"outShape\":\"instant\",\"dismissOn\":\"both\"},\"id\":21,\"type\":\"action.screen_flash\"}],\"connections\":[{\"toPin\":\"a\",\"fromNode\":13,\"toNode\":15,\"fromPin\":\"gained\"},{\"toPin\":\"in\",\"fromNode\":13,\"toNode\":16,\"fromPin\":\"out\"},{\"toPin\":\"condition\",\"fromNode\":15,\"toNode\":16,\"fromPin\":\"result\"},{\"toPin\":\"reset\",\"fromNode\":16,\"toNode\":17,\"fromPin\":\"false\"},{\"toPin\":\"in\",\"fromNode\":16,\"toNode\":17,\"fromPin\":\"true\"},{\"toPin\":\"in\",\"fromNode\":17,\"toNode\":18,\"fromPin\":\"out\"},{\"toPin\":\"in\",\"fromNode\":18,\"toNode\":19,\"fromPin\":\"then1\"},{\"toPin\":\"in\",\"fromNode\":18,\"toNode\":20,\"fromPin\":\"then2\"},{\"toPin\":\"show\",\"fromNode\":18,\"toNode\":21,\"fromPin\":\"then3\"}]}}]}"
+    },
+    {
+      "title": "Inventory nearly full (25 spaces used)",
+      "author": "lc_steve",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/comment/19s6ofnrx8pno/",
+      "notes": "",
+      "tags": [
+        "reddit",
+        "skilling"
+      ],
+      "content": "{\"schemaVersion\":1,\"entries\":[{\"kind\":\"alert\",\"enabled\":true,\"name\":\"Inventory nearly full (25 spaces used)\",\"graph\":{\"version\":1,\"nodes\":[{\"controls\":{\"color\":{\"g\":255,\"r\":20,\"a\":127,\"b\":0},\"inShape\":\"instant\",\"outShape\":\"instant\",\"dismissOn\":\"both\"},\"id\":7,\"type\":\"action.screen_flash\"},{\"controls\":{\"condition\":false},\"id\":9,\"type\":\"std.branch\"},{\"controls\":{\"container\":93},\"id\":11,\"type\":\"trigger.inventory\"},{\"controls\":{\"operation\":\">=\",\"a\":0,\"b\":25},\"id\":16,\"type\":\"std.compare\"}],\"connections\":[{\"toPin\":\"show\",\"fromNode\":9,\"fromPin\":\"true\",\"toNode\":7},{\"toPin\":\"in\",\"fromNode\":11,\"fromPin\":\"out\",\"toNode\":9},{\"toPin\":\"a\",\"fromNode\":11,\"fromPin\":\"usedSlots\",\"toNode\":16},{\"toPin\":\"condition\",\"fromNode\":16,\"fromPin\":\"result\",\"toNode\":9}]},\"layout\":[{\"x\":1026,\"id\":7,\"y\":181},{\"x\":711,\"id\":9,\"y\":184},{\"x\":-9,\"id\":11,\"y\":171},{\"x\":415,\"id\":16,\"y\":322}]}],\"pluginVersion\":\"1.0.0\"}"
+    },
+    {
+      "title": "Inventory nearly full (25 spaces used) – with sound and popup",
+      "author": "lc_steve",
+      "url": "https://www.reddit.com/r/runescape/comments/1xom5j6/comment/19s6poxh3dhid/",
+      "notes": "",
+      "tags": [
+        "reddit",
+        "skilling"
+      ],
+      "content": "{\"schemaVersion\":1,\"entries\":[{\"kind\":\"alert\",\"enabled\":true,\"name\":\"Inventory nearly full (25 spaces used)\",\"graph\":{\"version\":1,\"nodes\":[{\"controls\":{\"color\":{\"g\":255,\"r\":20,\"a\":127,\"b\":0},\"inShape\":\"instant\",\"outShape\":\"instant\",\"dismissOn\":\"both\"},\"id\":7,\"type\":\"action.screen_flash\"},{\"controls\":{\"condition\":false},\"id\":9,\"type\":\"std.branch\"},{\"controls\":{\"container\":93},\"id\":11,\"type\":\"trigger.inventory\"},{\"controls\":{\"operation\":\">=\",\"a\":0,\"b\":25},\"id\":16,\"type\":\"std.compare\"},{\"controls\":{\"bus\":\"VOICEOVER\",\"soundId\":3964},\"id\":20,\"type\":\"action.sound\"},{\"controls\":{\"theme\":\"parchment\",\"hold\":4.0,\"body\":\"Inventory nearly full\",\"title\":\"Inventory\"},\"id\":37,\"type\":\"action.popup\"}],\"connections\":[{\"toPin\":\"in\",\"fromNode\":9,\"fromPin\":\"true\",\"toNode\":37},{\"toPin\":\"show\",\"fromNode\":9,\"fromPin\":\"true\",\"toNode\":7},{\"toPin\":\"in\",\"fromNode\":9,\"fromPin\":\"true\",\"toNode\":20},{\"toPin\":\"in\",\"fromNode\":11,\"fromPin\":\"out\",\"toNode\":9},{\"toPin\":\"a\",\"fromNode\":11,\"fromPin\":\"usedSlots\",\"toNode\":16},{\"toPin\":\"condition\",\"fromNode\":16,\"fromPin\":\"result\",\"toNode\":9}]},\"layout\":[{\"x\":1726,\"id\":7,\"y\":155},{\"x\":851,\"id\":9,\"y\":186},{\"x\":16,\"id\":11,\"y\":184},{\"x\":415,\"id\":16,\"y\":322},{\"x\":1486,\"id\":20,\"y\":419},{\"x\":1469,\"id\":37,\"y\":753}]}],\"pluginVersion\":\"1.0.0\"}"
+    }
+  ]
+}
